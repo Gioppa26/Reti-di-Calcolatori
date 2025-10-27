@@ -1,8 +1,8 @@
 ## This file contains instructions and configurations for the `latexmk` program
 
 ## Choose TeX engine for PDF generation
-$pdf_mode = 1; # use pdfTeX
-# $pdf_mode = 4; # use LuaTeX
+# $pdf_mode = 1; # use pdfTeX
+$pdf_mode = 4; # use LuaTeX
 
 ### Additional flags for the TeX engine
 ## --shell-escape: enable external/system commands (e.g. Inkscape)

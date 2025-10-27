@@ -1,0 +1,26 @@
+\chapter{Chapter 2} \label{ch:Chapter2}
+\section{Framing}
+\subsection{Byte-counting approach: DDCMP}
+\begin{itemize}
+  \item conta quanti bit sono contenuti nel body del frame
+\end{itemize}
+\subsection{HDLC Protocol}
+Nel body può essere che ci sia una sequenza uguale a quella di inizio/fine. Per risolvere il problema.
+\subsection{PPP (Point-to-Point Protocol)}
+\section{Error Detection}
+\subsection{One-dimensional parity}
+Prendere i bit contare i bit a 1 e aggiungere un bit se sono dispari. Ci permetti di individuare facilemente errori singoli.
+\subsection{Two-dimensional parity}    
+Meccanismo che è una miglioria del precedente, con la differenza che vi è un controllo di parità verticale su stringhe di bit. Controllo quindi le colonne e aggiungo dei bit per far ritornare la parità. Molto più robusto perche se in una riga vengono cambiati due bit, l'errore non viene rilevato dal controllo orizzontale, ma viene invece rilevato nel controllo verticale. (\textbf{Mettere foto}).Se il numero di bit errati è un multiplo di 4 e sono in delle posizioni specifiche allora non funziona (\textbf{Mettere foto}).
+\subsection{Internet Checksum Algorithm}
+Non è utilizzato a livello data link ma bensi a livello 3/4, è molto semplice molto simile alla parità ma anziche sommare i singoli bit sommiamo dati a blocchi di 16 bit. I dati vengono visti come sequenze di coppie di Byte che vengono sommate tra loro. Quando si arriva in overflow si tronca. \\
+\textbf{Aggingere algoritmo checksum} \\
+\subsection{Cyclic Redundancy Check(CRC)}
+Algoritmo utilizzato maggiormente nella trasmissione dati.I bit vengono rappresentati come un polinomio di grado $n-1$. Scegliamo un C chiamato polinomio generatore e tutti i polinomi corretti divisi per C devono dare resto 0. Il polinomio E (polinomio errore) è formato dai bit sbagliati, idealmente il polinomio E dev'essere 0.Se io non ottengo 0 dalla divisione con C allora "butto via tutto".Se E(x) è un multiplo di C(x) allora c'è un errore (caso raro). \\
+\textbf{Proprietà}
+Se il polinomio C è della forma 0...01 è in grado di beccare tutti gli errori tutti i numeri dispari. Se ho due polinomi generatori C1 e C2 e entrambi captano diversi tipi di errori allora io posso costruire un polinomio combinato in modo che posso vedere molteplici errori utilizzando
+\section{Trasmissione affidabile}
+Acknoledge è un frame di controllo che non porta dei dati, ma porta informazioni di controllo, conferma che i dati inviati sono apposto. Io invio un messaggio al destinatario e lui mi risponde con un ack.
+\subsection{Protocollo Stop and Wait}
+Io invio un messaggio e mi fermo finche non ricevo l'ack non invio altri dati. Numero il frame 0 o 1(queste info sono scritte nell' header) quando io mando il frame 0 aspetto l'ack 0 quando lo ricevo mando il frame 1 e aspetto l'ack 1 poi mando un secondo frame 0 e così via.RTT (Round Trip Time) è il tempo di andata e ritorno. 
+\subsection{Sliding Window protocol}
