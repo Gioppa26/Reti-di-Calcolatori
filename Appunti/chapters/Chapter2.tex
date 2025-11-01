@@ -13,14 +13,107 @@ Prendere i bit contare i bit a 1 e aggiungere un bit se sono dispari. Ci permett
 \subsection{Two-dimensional parity}    
 Meccanismo che è una miglioria del precedente, con la differenza che vi è un controllo di parità verticale su stringhe di bit. Controllo quindi le colonne e aggiungo dei bit per far ritornare la parità. Molto più robusto perche se in una riga vengono cambiati due bit, l'errore non viene rilevato dal controllo orizzontale, ma viene invece rilevato nel controllo verticale. (\textbf{Mettere foto}).Se il numero di bit errati è un multiplo di 4 e sono in delle posizioni specifiche allora non funziona (\textbf{Mettere foto}).
 \subsection{Internet Checksum Algorithm}
-Non è utilizzato a livello data link ma bensi a livello 3/4, è molto semplice molto simile alla parità ma anziche sommare i singoli bit sommiamo dati a blocchi di 16 bit. I dati vengono visti come sequenze di coppie di Byte che vengono sommate tra loro. Quando si arriva in overflow si tronca. \\
-\textbf{Aggingere algoritmo checksum} \\
+Non è utilizzato a livello data link ma bensi a livello 3/4, è molto semplice molto simile alla parità ma anziche sommare i singoli bit sommiamo dati a blocchi di 16 bit. I dati vengono visti come sequenze di coppie di Byte che vengono sommate tra loro. Quando si arriva in overflow si tronca.
 \subsection{Cyclic Redundancy Check(CRC)}
 Algoritmo utilizzato maggiormente nella trasmissione dati.I bit vengono rappresentati come un polinomio di grado $n-1$. Scegliamo un C chiamato polinomio generatore e tutti i polinomi corretti divisi per C devono dare resto 0. Il polinomio E (polinomio errore) è formato dai bit sbagliati, idealmente il polinomio E dev'essere 0.Se io non ottengo 0 dalla divisione con C allora "butto via tutto".Se E(x) è un multiplo di C(x) allora c'è un errore (caso raro). \\
-\textbf{Proprietà}
+\textbf{Proprietà}: \\
 Se il polinomio C è della forma 0...01 è in grado di beccare tutti gli errori tutti i numeri dispari. Se ho due polinomi generatori C1 e C2 e entrambi captano diversi tipi di errori allora io posso costruire un polinomio combinato in modo che posso vedere molteplici errori utilizzando
 \section{Trasmissione affidabile}
 Acknoledge è un frame di controllo che non porta dei dati, ma porta informazioni di controllo, conferma che i dati inviati sono apposto. Io invio un messaggio al destinatario e lui mi risponde con un ack.
 \subsection{Protocollo Stop and Wait}
 Io invio un messaggio e mi fermo finche non ricevo l'ack non invio altri dati. Numero il frame 0 o 1(queste info sono scritte nell' header) quando io mando il frame 0 aspetto l'ack 0 quando lo ricevo mando il frame 1 e aspetto l'ack 1 poi mando un secondo frame 0 e così via.RTT (Round Trip Time) è il tempo di andata e ritorno. 
 \subsection{Sliding Window protocol}
+\section{Ethernet - IEEE 802.3}
+Lo standard definisce 2 livelli:
+\begin{itemize}
+  \item Layer fisico
+  \item Layer Data Link
+\end{itemize}
+Il protocollo di accesso a Ethernet e' CSMA/CD (Carrier Sense Multiple Access with Collision Detection) l'algoritmo di accesso al mezzo trasmette i dati sul mezzo solo quando non c'e un segnale. Multiple Access perche' tutte le stazioni possono accedere in modo casuale, quando uno vuole trasmettere trasmette. Senza un meccanismo di coordinamento e' possibile che le stazioni trasmettono una sopra l'altra, si verifica quindi una collisione. In ethernet il metodo per gestire le collissioni e' quello di distinguerle, quindi appena succede che due stazioni si parlano sopra allora entrambe si fermano. Originiriamente deriva da ALOHA sviluppato negli anni 70 nelle isole Hawaii, il quale utilizzava un satellite per effettuare la comuncazione tra le varie isole(senza quindi tirare un cavo fisico).
+\subsection{Ethernet-10Base5}
+Il mezzo con cui si comunicano i segnali e' il cavo coassiale, simile al cavo dell'antenna, al massimo lungo 500m. Agli estremi sono presenti dei terminatori ,che non sono altro che delle resistenze. Ogni stazione si colleca al cavo tramite il vampire tap, questo connettore permette di entrare nella guaina del cavo e andare a toccare il core centrale.La capacita' di trasmissione e' di 10mbps con una lunghezza max di 500 metri. Sul singolo segmento si possono avere fino a 100 dispositivi. Tutti i cavi sono collegati ad un transcever, il quale prende il segnale analogico e lo decodifica e risconosce il frame, poi da un lato del transceiver c'e un cavo seriale che e' collegato al pc.Dal punto di vista elettrico quando io invio un segnale questo inizia a propagarsi a una velocita' di circa 2c/3. Il resistore al terminale e' stato messo proprio per assorbire questa energia che viene propagata. Il segnale viene codificato con la codifica Manchester inversa, 0V non viene trasmesso niente mentre $\pm$0.85V.
+\begin{Question}
+  Come si fa a riconoscere l'inizio di un frame?
+\end{Question} 
+Siccome il riposo e' 0V allora so che quando e' diverso sara' cominciata la tramissione.
+I segmenti possono essere collegati fra loro attraverso dei repeters. I quali prendono il segnale codificato e lo decoficano dall'altra parte bit per bit.Sono dispositivi molto semplici e veloci ma non fa nessun controllo. Lo standard dice che fra due stazioni non ci possono essere piu' di 4 repeater quindi al massimo di puo' arrivare a 2500 metri totali.
+\begin{example}
+  La tipica disposizione era quella di avere una dorsale alla quale collegare i 4 repeater e da ogniuno far partire i cavi a cui si connettono gli host
+\end{example}
+\subsection{Ethernet-10Base2}
+Il 10Base2 utilizza il "Thinnet" cavo che non e' isolato e ha una portata massima di 200 metri, tutto il resto rimane uguale al coassiale. Il 10BaseT invece e' basato sui doppini intrecciati, molto piu' economico ma limitato ad una linghezza massima di 100 metri per segmento. Di base il cavo TP non e' buono, cambia invece se il cavo viene schermato Internamente (Cavi che utilizziamo oggi).Nel reti in 10BaseT ci sono 2 stazioni una che riceve e una che trasmette per ogni lato del cavo (inizio e fine).
+\subsection{Velocita' di propagazione}
+La velocita' di propagazione cambia abbastanza perche' dipende dalla capacita' dielettrica. Se io devo inviare un impulso elettrico per propagarsi deve staccare la tensione fra i cavi e la capacita' dielettrica dell' isolante dei due cavi mi dice quanto e' difficile staccarli, l'ideale sarebbe il vuoto.
+\subsection{Ethernet-10BaseT}
+Il 10BaseT e' basato sui doppini intrecciati, molto piu' economico ma limitato ad una linghezza massima di 100 metri per segmento. Di base il cavo TP non e' buono, cambia invece se il cavo viene schermato internamente (cavi che utilizziamo oggi).Nel reti in 10BaseT ci sono 2 stazioni una che riceve e una che trasmette per ogni lato del cavo (inizio e fine). Utilizza gli \textit{hub}, antenati degli switch, il quale trasmette un frame ricevuto in broadcast (reti topologia a stella).
+\subsection{Mixed networks}
+E' possibili mischiare tutto quello detto sopra:
+\begin{example}
+  \textbf{Foto}
+\end{example}
+\subsection{Formato del frame Ethernet}
+\begin{itemize}
+  \item Preambolo: 7B fissi,non porta dati ma serve per dire che inizia la connessione.Dal punto di vista elettrico equivale ad un clock.
+  \item SFD: 1B, indica dove inizia il frame. Fa parte del preambolo.
+  \item Receiver MAC Address: 
+  \item Sender MAC Address:
+  \item VLAN Tag:
+  \item Data
+  \item Campo Type: Sono 2B che servono ad identificare il tipo di protocollo dentro il payload. A quale livello 3 passare il pacchetto. 
+  \item Padding: aggiunge dei bit per rispettare la lunghezza del pacchetto.
+  \item CRC Checksum:
+\end{itemize}
+\subsection{MAC address}
+E' un indirizzo unico composto da 48 bit.Nel frame troviamo prima i 6B della scheda di destinazione e poi i 6B della scheda mittente.
+\subsection{Algoritmo ricevitore}
+Quando viene trasmesso un segnale il ricevitore sente il segnale e inizia a registrare. Arriva il preambolo e poi arriva il mac address, li controlla e se sono "per lui" allora inizia ad ascoltare altrimenti ignora. Esiste un indirizzo speciale \textbf{FF:FF:FF:FF:FF:FF} che e' l'indirizzo di broadcast. Il multicast e' un altra modalita' di comunicazione condivisa, gli indirizzi che hanno il primo bit a 1 sono indirizzi multicast. Un certo host puo' essere programmato per ascoltare degli indirizzi multicast. In sintesi il ricevitore analizza se il frame ha l'indirizzo a lui inviato, un indirizzo in broadcast o un indirizzo multicast.
+\subsection{Algoritmo di trasmissione}
+E' chiamato CSMA/CD ed e' implementato a livello HW. Quando devo trasmettere i dati vengono scritti nel registro interno e gli do l'ordine di trasmettere.
+\begin{Question}
+  Cosa fa la stazione quando deve trasmettere il frame?
+\end{Question}
+Ha gia tutto pronto (frame e gli altri dati da inviare).Come prima cosa ascolta il segnale, se ci sono 0V significa che il segnale e' libero (se non e' libero aspetta la fine) e inizia a trasmettere. Lo stato della linea puo avere 3 stati:
+\begin{itemize}
+  \item Idle: nessuna stazione ha frame da trasmettere.
+  \item Contention: ci sono delle stazione che devono trasmettere e devono attendere che il canale sia libero.
+  \item Transmission: una o piu' stazioni trasmettono.
+\end{itemize}
+Si suppone che c'e' una trasmissione in corso e durante la comunicazione altre due stazioni cercano di trasmettere, trovando la linea occupata si mettono in attesa. Quando la trasmissione e' terminata si attende un piccolo lasso di tempo, chiamato ITP (Intern Packet Gap) di 9,6 micro secondi, e iniziano a parlare insieme ma siccome cominciano contemporaneamente si verifica una collisione. Per risolvere questo problema si utilizza il collision detection.
+\subsection{Collision Detection}
+Meccanismo per rilevare le collisioni. Quando si verifica un collisione il meccanismo blocca tutto e comunica a tutti che si e' verificata una collisione, per fare questo trasmette una sequenza di bit chiamata \textit{jamming sequence}. Questa sequenza e' formata da 96 bit minimi, 64 bit sono il preambolo del frame e 32 bit sono una sequenza jamming standard che dice che e' abortita la trasmissione (caso piu fortunato). Il caso piu' sfortunato e' che viene inviato tutto il frame ma nell' ultimo bit si verifica la collisione quindi devo buttare via tutto.
+\begin{Question}
+  Perche' 512 bits?
+\end{Question}
+\begin{Question}
+  Perche' la lunghezza e' limitata a 2500 metri?
+\end{Question}
+Il tempo di codifica del frame deve essere superiore al tempo di propagazione moltiplicato per 2. In 10 Mbps corrisponde a 512 bit = 64 byte che e' la lunghezza minima del frame. La propagazione del segnale per fare 2500 metri ci mette 11$\mu$s (c'e' anche del delay dovuto dai repeater).
+\subsection{Backoff esponenziale}
+Quando si verifica una collisione e la trasmissione viene interrotta la stazione aspetta un certo tempo e poi prova di nuovo a inviare il messaggio. Se si riverifica la collisione allora aspettera il doppio del tempo prima di inviare di nuovo il messaggio. Questa tecnica e' chiamata backoff esponenziale, quindi il tempo necessario per trasmettere un frame non e' deterministico. \\
+\textbf{Immagine Trasmitter Algorithm}\\
+\subsection{Ethernet Efficiency}
+\begin{Definition}
+L' efficienza di una rete e' data dal rapporto tra il tempo di trasmissione e il vero tempo necessario per trasmettere il frame. 
+\end{Definitioni}
+Il protocollo CSMA/CD non e' facile da analizzare data la sua natura deterministica e dal fatto che non tutte le stazioni si comportano alla stessa maniera.
+\subsection{Ethernet Efficiency - 1 stazione trasmittente}
+\begin{Example}
+  Consideriamo il caso in cui mentre una sola stazione trasmette le altre stazioni si comportano tutte allo stesso modo. Quindi la stazione inizia a trasmettere sul canale e tutte le altre ricevono, in questo caso non si verificano collisioni e il frame viene inviato con successo subito dopo IPG.L'efficienza teorica e:
+  \begin{equation}
+    P/(12+8+P+18) = P/(P+38) = 1/(1+38/P)
+  \end{equation}
+  Dove i dati sono:
+  \begin{itemize}
+    \item IPG = 9.6$\mu$s = 96 bit = 12 byte
+    \item Preambolo + SFD = 8 byte
+    \item P = lunghezza del payload (max 1500 byte)
+    \item Header + CRC = 18 byte
+  \end{itemize}
+  Piu' e' grande il valore di P maggiore sara' efficiente il protocollo(il caso peggiore e' quello in cui P=1 ma in realta' P=46 a causa del padding).
+  \begin{itemize}
+    \item Worst case: P=46 \rightarrow efficienza del 54\%
+    \item Best case: P=1 \rightarrow efficienza del 97\%
+  \end{itemize}
+\end{Example}
+\subsection{Ethernet Efficiency - N stazioni uguali che competono}
+
