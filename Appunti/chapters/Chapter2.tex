@@ -92,28 +92,144 @@ Il tempo di codifica del frame deve essere superiore al tempo di propagazione mo
 Quando si verifica una collisione e la trasmissione viene interrotta la stazione aspetta un certo tempo e poi prova di nuovo a inviare il messaggio. Se si riverifica la collisione allora aspettera il doppio del tempo prima di inviare di nuovo il messaggio. Questa tecnica e' chiamata backoff esponenziale, quindi il tempo necessario per trasmettere un frame non e' deterministico. \\
 \textbf{Immagine Trasmitter Algorithm}\\
 \subsection{Ethernet Efficiency}
-\begin{Definition}
-L' efficienza di una rete e' data dal rapporto tra il tempo di trasmissione e il vero tempo necessario per trasmettere il frame. 
-\end{Definitioni}
+\begin{definition}
+  L' efficienza di una rete e' data dal rapporto tra il tempo di trasmissione e il vero tempo necessario per trasmettere il frame. 
+\end{definition}
 Il protocollo CSMA/CD non e' facile da analizzare data la sua natura deterministica e dal fatto che non tutte le stazioni si comportano alla stessa maniera.
 \subsection{Ethernet Efficiency - 1 stazione trasmittente}
-\begin{Example}
-  Consideriamo il caso in cui mentre una sola stazione trasmette le altre stazioni si comportano tutte allo stesso modo. Quindi la stazione inizia a trasmettere sul canale e tutte le altre ricevono, in questo caso non si verificano collisioni e il frame viene inviato con successo subito dopo IPG.L'efficienza teorica e:
-  \begin{equation}
-    P/(12+8+P+18) = P/(P+38) = 1/(1+38/P)
-  \end{equation}
-  Dove i dati sono:
-  \begin{itemize}
-    \item IPG = 9.6$\mu$s = 96 bit = 12 byte
-    \item Preambolo + SFD = 8 byte
-    \item P = lunghezza del payload (max 1500 byte)
-    \item Header + CRC = 18 byte
-  \end{itemize}
-  Piu' e' grande il valore di P maggiore sara' efficiente il protocollo(il caso peggiore e' quello in cui P=1 ma in realta' P=46 a causa del padding).
-  \begin{itemize}
-    \item Worst case: P=46 \rightarrow efficienza del 54\%
-    \item Best case: P=1 \rightarrow efficienza del 97\%
-  \end{itemize}
-\end{Example}
+Consideriamo il caso in cui mentre una sola stazione trasmette le altre stazioni si comportano tutte allo stesso modo. Quindi la stazione inizia a trasmettere sul canale e tutte le altre ricevono, in questo caso non si verificano collisioni e il frame viene inviato con successo subito dopo IPG.L'efficienza teorica e:
+\begin{equation}
+  P/(12+8+P+18) = P/(P+38) = 1/(1+38/P)
+\end{equation}
+Dove i dati sono:
+\begin{itemize}
+  \item IPG = 9.6$\mu$s = 96 bit = 12 byte
+  \item Preambolo + SFD = 8 byte
+  \item P = lunghezza del payload (max 1500 byte)
+  \item Header + CRC = 18 byte
+\end{itemize}
+Piu' e' grande il valore di P maggiore sara' efficiente il protocollo(il caso peggiore e' quello in cui P=1 ma in realta' P=46 a causa del padding).
+\begin{itemize}
+  \item Worst case: P=46 \rightarrow efficienza del 54\%
+  \item Best case: P=1 \rightarrow efficienza del 97\%
+\end{itemize}
 \subsection{Ethernet Efficiency - N stazioni uguali che competono}
-
+Consideriamo il caso in cui ci sono N stazioni uguali che competono per il canale di comunicazione.Ad ogni slot le stazioni vogliono trasmettere un frame con probabilita' \textit{p}. N*p e' il numero medio di stazioni che sono disponibili per trasmettere ad ogni slot (Np e' il carico tottale della rete). La trasmissione avviene con successo se,per tutto lo slot, un stazione non rileva collisioni. Se questo si verifica allora il frame viene inviato altrimenti si riprova nello slot successivo.
+\begin{Question}
+  Qual' e' la probabilita' che uno slot abbia successo nella trasmissione di un frame?
+\end{Question}
+Per calcolare la probabilita' si tiene conto del valore P
+\begin{equation}
+  P=Np(1-p)^{N-1}
+\end{equation}
+Si ottiene probabilita' massima quanto Np=1. Ma per evitare collisioni e ottimizzare il throughput globale allora piu' host ci sono meno vogliono trasmettere. \\
+Definisco:
+\begin{itemize}
+  \item $t_{trans}$ il tempo per trasmettere il payload = payload/bitrate.
+  \item Slot time = $2t_{prop}$
+  \item $t_{oh}$ = frame overhead = preambolo + header + CRC = 26 byte /bitrate.
+        \item Il tempo medio di trasmissione: $IPG + e*2t_{prop}+t_{trans}+t_{oh}$.
+\end{itemize}
+\begin{equation}
+  Efficieza = \frac{t_{trans}}{t_{trans}+IPG+t_{oh}+2et_{prop}}= \frac{1}{1+\frac
+    {(IPG+t_{oh}+2et_{prop})}{t_{trans}}}
+\end{equation}
+\section{Wireless Links}
+Le reti wireless si basano su segnali elettromagnetici grazie ai quali e' possibili trasmettere.L'ethernet e' un bene demaniale, l' utilizzo delle frequenze e' regolamentato. I dispositivi utilizzano frequenze con licenza, le quali sono soggette a restrizioni:in primis la potenza del segnale viene limitata per garantire la non interferenza con gli altri segnali vicini, l'altra restrizione richiede l'utilizzo della tecnica Spread Spectrum.
+\begin{definition}[Spread Spectrum technique]
+  Espandere il segnale in una frequenza a banda larga cosi da minimizzare le interferenze degl'altri dispositivi. (Originariamente creare per scopi militari)
+\end{definition}
+\subsection{Frequency hopping}
+Viene sezionata una sequenza di salti da un canale all'altro in modo casuale, trasmetto per un breve periodo in una frequenza poi salto e vado ad un altra frequenza. Ovviamente il ricevitore per essere sincronizzato salta da una frequenza all'altra.
+\subsection{Tipologie di reti wireless}
+Ci sono tante tipologie perche ci sono diverse richieste e requisiti.
+\begin{itemize}
+  \item Wi-Fi - 802.11
+  \item Bluetooth - 802.15.1
+  \item WiMAX - 802.16
+  \item 3G/4G/5G
+\end{itemize}
+I segnali trasmismessi dai dispositivi wireless si propagano in modo sferico. Siccome ogni dispositivo ha una potenza non e' detto che tutti i dispositivi ricevano il pacchetto (devo trovarsi all'interno del raggio d'azione)
+\subsection{Topologia reti wireless}
+I nodi trasmetto i messaggi tra loro, molto utile quando non c'e' una stazione fissa o non si riesce a coprire tutte le aree per la ricezione.
+\begin{itemize}
+  \item A rete
+  \item Ad-hoc
+\end{itemize}
+\section{IEEE 802.11}
+E' il nome formale per il \textbf{Wi-Fi}.Maggiormente utilizzato per connessioni di reti locali(stesso edificio) e non per offrire servizi come il 3G o 4G.Il problema principale e' quello di un accesso regolamentato all'ethernet. Le primissime versioni avevano due tecnologie base: la prima utilizzava il frequency hopping su un 79 bande di frequenza di larghezza 1MHz mentra la seconda usava una chipping sequence di 11 bit.
+\subsection{IEEE 802.11 - OFDM}
+\begin{definition}
+  Tecnica di trasmissione che consiste nell'utilizzare un numero elevato di sottoportanti tra loro ortogonali come mezzo per trasmettere i dati in una serie di canali paralleli.
+\end{definition}
+\subsection{Collision Avoidance}
+Nel wireless non c'e' una visibilita' totale tra i nodi quindi questo crea dei problemi.
+\begin{example}
+  Si suppone che A e C vogliono trasmettere i dati a B, A e C non si conoscono in quanto non sono dentro nel range del segnale, quindi i frame inviati si scontrano su B. Quindi il protocollo CMSA/CD non funziona nelle reti wireless.
+\end{example}
+\begin{example}[Nodo esposto]
+  I nodi B e C sono esposti tra loro mentre A non vede C.Suppongo che B invia ad A e C vuole trasmettere a B. Utilizzo protocollo CSMA/CD, B inizia a trasmettere e A riceve ma anche C inizia a trasmettere, poi pero' si accorge che c'e' una trasmissione in corso quindi si ferma. In realta' questo non e' un problema perche il segnale e' talmente debole che non altererebbe la comunicazione quindi A riceverebbe i frame da B.
+\end{example}
+Da questi problemi si capisce che il protocollo CSMA/CD non basta piu'
+\subsection{Tecniche di risoluzione collision avoidance}
+Il wireless utilizza l'algoritmo chiamato CSMA/CA, Carrier Sense Multiple Access with Collision Avoidance. Molto simele al CSMA/CD ma adattato al fatto che si ha una visione completa della rete.\\
+\textbf{Idea base:} \\
+\begin{itemize}
+  \item Prima di inziare la comunicazione il trasmettitore e ricevitore si scambiano dei pacchetti ausiliari che servono per verificare se entrambi sono nella posizione corretta in modo che si vedano.
+  \item Questo scambio di info serve per far capire a tutti i nodi vicini che una trasmissione sta per cominciare.
+  \item Il trasmettitore quindi invia un frame \textbf{Request to Send (RTS)} al ricevitore. Questo frame contiene un campo chiamato \textit{Duration} che indica per quanto tempo il trasmettitore utilizzera' il canale.
+  \item Il ricevitore rispondera' con un frame \textbf{Clear to Send (CTS)} il quale re-inoltra il campo duration al trasmettitore.
+\end{itemize}
+\subsection{Parametri collision avoidance}
+\begin{itemize}
+  \item Slot time: intervallo di tempo molto piccolo, utilizzato nel backoff esponenziale.
+  \item SIFS - Short Inter Frame Space: tempo necessario per processare e rispondere al frame nella stessa transazione.
+  \item PIFS - Point Control Function Interframe Space: tempo di attesa dell'Access point che deve attentere prima di inviare un RTS.
+  \item DIFS: Distributed Control Function Interframe Space: tempo di attesa di una stazione che deve attentere prima di inviare un RTS
+\end{itemize}
+\subsection{Formato del frame}
+Nel wi-fi abbiamo diversi tipi di frame: DATA,RTS,CTS,ACK o BEACON. Per distinguere il tipo di frame, dato che ce ne sono tanti si guardano i primi 2 byte o Frame Control, serve a dire a cosa serve quel frame. Nel caso del tipo DATA in questi 2 byte sono presenti diversi campi:
+\begin{itemize}
+  \item Version Protocollo
+  \item Type: specifica se e' un ACK o un RTS, ecc.
+  \item Subtype
+  \item To DS
+  \item From DS
+  \item More Frag
+  \item Retry
+  \item Power Mgmt: serve per mettere in stand-by una stazione oppure per risvegliarla
+  \item More Data
+  \item WEP: Wired Equivalent Privacy se settato a 1 significa che i dati sono cifrati. 
+  \item Order
+\end{itemize}
+Non e' detto che ci siano dati, la grandezza massima del campo data e' di 2312 byte.Negli altri tipi di frame la lunghezza e' fissata anche loro sono riconosciuti guardando i primi 2 byte.
+\subsection{Efficienza della trasmissione}
+Supponiamo di essere su una rete 802.11g a 54 Mbps (faccio questa supposizione perche' e' difficile calcolare l'efficienza in modo preciso). In questo caso ci sono sempre: 1 DIFS + 3 SIFS = 4 SIFS + 2 Slot time = 4*10 + 2*9 + 58$\mu$s che sono equivalenti a 58$\mu$s * 54 Mbps + 3132 bit = 391,5 byte. Aggiungo ora 82 byte di header,CRC e altri frame e ottengo un totale di 473,5 byte per ogni transazione.Se il payload e' di 1500 byte l'efficienza non sara' piu' di 1500/(1500+473,5) + 76\%. Quindi in realta' la vera capacita' utile e' di 41 Mbps e non 54 Mbps. In confronto l'ethernet sotto le stesse condizioni ha un efficienza del 97\%.
+\subsection{Segmentazione del frame}
+I dati potrebbero esserre spaccati in piu' frame, in particolare se il frame e' piu' grande di 2312 byte posso allora frammentare il dato e tramite gli ACK invio tutti i frammenti, tra gli ACK utilizzo SIFS come delay e continuo finche tutto il messaggio viene inviato.
+\subsection{Roaming}
+Il problema del roaming e' quello di far vedere tutto questo insieme di celle come un'unica. I frame di tipo DATA contiene 4 indirizzi che vengono interpretati in base alle impostazioni di ToDS e FromDS questo rende il frame forwordable all'interno della rete di Access Point. Il trasmettitore originale non e' piu' quindi il trasmettitore piu' recente e questo vale anche per i ricevitori.
+\begin{example}[Un nodo trasmette direttamente con un altro nodo]
+  Entrambi i bit DS sono settati su 0, Addr1 identifica il target e Addr2 indetifica la sorgente
+\end{example}
+\begin{example}[Caso piu' complesso]
+  Entrambi i bit DS sono settati a 1 il che significa che il messaggio e' passato da un nodo wireless al sistema di distribuzione e poi dal sistema di distribuzione e andato in un altro nodo wireless. Addr1 identifica la destinazione finale, Addr2 identifica i trasmettitore "immediato" ovvero quello che, dal sistema di distribuzione, inviera' il frame al nodo finale, Addr3 identidfica la destinazione intermedia e Addr4 identifica la sorgente.
+\end{example}
+\section{Bluetooth}
+Utilizza le stesse frequenze utilizzate dal Wi-Fi, utilizzando per FHSS quindi suddivide il canale da 2.4GHz in 79 sottocanali e facendo hopping tra i canali. Il range e' relativamente piccolo, arriva a poche decine di metri con un basso consumo di potenza (che in realta' non e' vero perche' 1W e' tanto,un AP normalemente consuma 800mW).L'idea e' quella di creare una PAN(Personal Area Network).Il bluetooth e' una suite di protocolli (implementato tutto lo stack e lo ridefiniscono) che vengono chiamati \textit{profili}. I profili hanno diverse funzioni:c'e' un profilo per trasmettere file, uno per le connessioni audio e altri ancora.\\
+\includegraphics[width=12cm]{figures/schemaBluetooth.png} \\
+Analizzando la figura si vedono 4 aree principali:
+\begin{itemize}
+  \item Protocolli core: implementati da tutti i sistemi bluetooth. Partendo dal basso i primi due sono del lv. 1, il L2CAP e LMP sono di lv.2 questi ultimi implementano una specie di interfaccia per l'invio di pacchetti.
+  \item Cable replacement protocol: formato dal protocollo RFCOMM che simula un modem seriale
+  \item Protocolli per la telefonia: Comandi AT sono i vecchi comandi utilizzati per controllare i vecchi modem.
+  \item Protocolli adattati: protocolli citati nel paragrafo precedente. Uno nuovo e' OBEX che e' un meccanismo di trasferimento per piccoli dati.
+\end{itemize}
+\subsection{Bluetooth Piconet}
+Rete composta da un dispositivo che fa da master e da dispositivi che sono slave. Tutte le comunicazioni tra master e slave sono organizzate in turni con un ordine specifico e nessuno slave puo parlare se non e' il suo turno. Gli slave non possono parlare con un'altro slave senza passare prima dal master. La piconet permette di avere fino a 8 slave e un set di slave inattivo.
+\subsubsection{Piconet MAC}
+Ogni nodo ha un Bluetooth Device Address.
+I frame possono essere anche attaccati fra loro (fino a 5 frame di seguito), dato che il master trasmette solo su slot pari.
+\subsection{Bluetooth frame}
+\subsection{Scatternets}
+Sono piu' piconet attaccate assieme

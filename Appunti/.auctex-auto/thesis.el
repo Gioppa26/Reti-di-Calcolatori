@@ -16,6 +16,7 @@
     "chapters/Notation"
     "chapters/Chapter1"
     "chapters/Chapter2"
+    "chapters/Chapter3"
     "chapters/Summary"
     "chapters/Appendix"
     "report"
