@@ -58,3 +58,384 @@ Questo processo viene fatto in 3 fasi:
   %\caption{Struttura degli URI. \protect\footnotemark} % Usa \footnotemark qui
   %\label{fig:struttura-uri-dettagliata}
 \end{figure}
+\subsection{Bridges e LAN Switches}
+La soluzione più semplice se volgiamo estendere un ramo ethernet è quella di mettere un repeater, che in modo molto semplice passa i bit da una parte all'altra. Se invece vogliamo dei dispositivi che riconoscono i frame allora bisogna utilizzare gli switch o bridges. Gli switch continuano ad osservare il traffico su un ramo della reta e apprendono in quali posizioni si trovano i vari dispositivi. \\
+\textbf{Soluzione:} \\
+Gli switch apprendono autonomamente le posizioni, quindi gli switch rimangono in ascolto e quando passa un frame imparano qual'è il mittente. In questo modo la tabella degli switch si auto-popola.Per scoprire la posizione gli switch utilizzano il \textit{Distributed Spanning Tree Algorithm}.
+\subsubsection{Spanning Tree Algorithm}
+Gli switch si parlano fra loro e utilizzano dei pacchetti ethernet con payload diverso dai pacchetti ethernet normali.E' un algoritmo distribuito, significa che non c'è un controllo centrale che dice chi è il master o chi è la radice centrale. GLi switch si parlano tra loro e decidono. Se quindi voglio aggiungere un nuovo switch alla rete posso farlo senza problemi perchè poi si arrangiano a sistemare le loro tabelle.\\
+\textbf{Funzionamento:}\\
+\begin{itemize}
+  \item A ogni bridge viene dato un identificatore univoco(solitamente l'ultimo id delle sue porte) es. B1,B2,B3,ecc.
+  \item Il bridge con l'id più piccolo viene selezionato come radice dell'albero
+  \item La radice invierà pacchetti in broadcast (come un hub).
+  \item Ogni bridge calcola poi qual è il percorso più breve per arrivare alla radice e tiene conto di quali porte sono nel cammino. Quella porta sarà poi nominata come root port.
+  \item Infine tutti i bridge collegati "nominano" un designated brigde che sarà responsabile di inoltrare i frame si avanti che indietro.
+\end{itemize}
+\subsubsection{Limitazioni dei bridges}
+Innanzitutto l'algoritmo di spanning tree non è scalabile(è in tempo lineare e non tiene conto della gerarchia). Neanche il broadcast scala dato che ci sarebbe troppo traffico se la rete è molto vasta.Un altro problema è che funziona solamente su reti omogenee quindi non ci possono essere reti con indirizzamenti diversi.Infine l'ultimo problema è la grandezza del payload massimo o MTU, se per esempio io metto un access point nella rete il frame è molto piu grande di quello di un bridge quindi deve essere frammentato. Il pacchetto frammentato viene poi inviato e ricomposto dal ricevitore(PAF fragmentation).
+\section{Internetworking}
+\begin{definition}
+  E' una collezione di reti diverse(con tecnologie differenti)interconnesse per garantire un servizio host-to-host. I livelli 1 e 2 a loro volta sono differenti tra loro.
+\end{definition}
+Per implementare questo tipo di astrazione si utilizza l'IP(Internet Protocol), è presente in tutti i nodi della collezione e definisce l'infrastruttura che permette ai nodi e alle reti di funzionare come una singola internetwork.Nello stack TCP/IP l'IP si trova nel network layer e tra le sue varie mansioni si occupa anche del packet forwarding.
+\subsubsection{Packet Forwarding}
+Un pacchetto può arrivare all'IP layer in 2 modi differenti:
+\begin{itemize}
+  \item Un layer sopra richiede dei dati per un altro host, quindi il dato viene incapsulato in un datagram e viene inviato al prossimo nodo tramite un prototocollo datalink specifico. Facendo cosi è possibile inviare/trasmettere dati a una qualsiasi interfaccia anche se non la si conosce.
+  \item Arriva un pacchetto da un layer sottostante posso avere due possibilità:
+        \begin{itemize}
+          \item Se il pacchetto è indirizzato al localhost, l'IP header viene "spogliato" e il payload viene inviato al corretto protocollo di trasporto
+          \item Se il pacchetto è indirizzato ad un altro host allora si può utilizzare un interfaccia per inviare il pacchetto.
+        \end{itemize}
+\end{itemize}
+\section{Routers}
+\begin{definition}
+  E' un host con molte interfacce che inoltra i pacchetti da un interfaccia all'altra.
+\end{definition}
+Operano utilizzando la strategia \textit{store-and-forward}, ma a differenza degli switch, i dati vengo astratti dai collegamenti sottostanti. Quest'ultima parte significa che ogni link può usare tecnologie differenti, l'IP datagram viene incapsulato,decapsulato,incapsulato e così via. Infine l'operazione di forwarding viene decisa nell'indirizzo IP e non in quello LAN.
+\subsection{IP Service Model}
+\begin{itemize}
+  \item Packet Delivery Model: è un modello connectionless per l'invio di dati. E' un modello poco affidabile in quanto i pacchetti posso essere persi, vengono inviati a caso, anche se ci sono pacchetti duplicati vengono inviati e ci possono essere dei delay lunghi.
+  \item Global Address Scheme: stabilisce un modo per identificare tutti gli della rete e astrare il MAC dai layer sottostanti.
+\end{itemize}
+\subsection{Packet Format}
+Le  righe più interessanti sono le prime 5, ogniuna è da 32 byte e l'intestazione minima è 5 word quindi 20 byte.
+\begin{itemize}
+  \item 4: Sono 4 byte che portano la versione dell'IP (IPv4 o IPv6).
+  \item IHL: lunghezza dell'intestazione stessa, contata in word.
+  \item TOS(Type Of Service): specifica come "trattare" il datagramma 
+  \item Lunghezza totale del datagramma + intestazione: sono 16 bit quindi al max è grande $2^{16}$(circa 64KB).
+  \item Campo identification 16 bit: utilizzato per la frammentazione
+  \item Flags e Offset: 3bit + 13bit utilizzati per la frammentazione
+        \begin{itemize}
+          \item Flag bit 0: è 0
+          \item Flag bit 1: Don't fragment
+          \item Flag bit 2: More fragments
+        \end{itemize}
+  \item TTL (Time To Leave) 8bit: è un contatore che specifica il numero di hop che il datagramma deve fare.
+  \item Protocol 8bit: indica il tipo di payload che stiamo portando (TCP=6,UDP=17).
+  \item Checksum 16bit: controllo per l'header.
+  \item Indirizzo destinazione/sorgente 32bit: è il vero e proprio indirizzo ip, identificano gli host a livello 3 (non c'è il MAC address).
+\end{itemize}
+\subsection{IP Fragmentation and Reassembly}
+Ogni rete fisica ha a disposizione delle MTU (Maximum Trasmission Unit), il numero di MTU disponibili dipende dal tipo di tecnologia,per esempio WiFi ha 4352 MTU(bytes). A livello trasporto non si sa nulla riguardo alle MTU e anche se troviamo l'MTU del link locale durante il tragitto dal mittente al destinatario si può incappare in un MTU più piccola. Più che altro la minima MTU da mittente a destinatario può cambiare durante il corso del tempo perchè i pacchetti possono percorrere strade differenti.
+\begin{Question}
+  Cosa deve fare un router se il datagramma che deve inviare non ci sta in un singolo frame dell'interfaccia di output?
+\end{Question}
+Ci sono due possibili casi:
+\begin{itemize}
+  \item Se il flag DF=1 quindi il pacchetto viene scartato e viene notificato il sender di ridurre la dimensione dei pacchetti che invia.
+  \item Se il flag DF=0: il router procede con la frammentazione.
+\end{itemize}
+I datagrammi vengono quindi frammentati nel Network layer in modo "trasparente" per i livelli sopra i quali vedono solo datagrammi completi. La frammentazione accade in un router quando riceve un datagramma che vuole essere inoltrato in una rete che ha MTU < lunghezza datagramma. I frammenti contengono lo stesso identificatore che è memorizzato nel campo \textit{Ident} e sono anche self-contained packets. La grandezza di ogni frammento viene scelta dal router in modo che header+payload ≤ MTU. In generale,la grandezza del payload viene scelta in modo che sia il più grande multiplo di 8 che è più piccolo di $MTU - header lenght$.
+\begin{example} MTU = 536,header = 20 byte \\
+  \begin{equation}
+    536 - 20 = 516
+  \end{equation}
+  Il multiplo di 8 da scegliere è 512. Ogni pacchetto sarà grande 512+20 bytes
+\end{example}
+Se un pacchetto IP non è frammentato ha sempre offset 0 e more fragments 0.
+\section{Indirizzi Globali}
+Proprietà:
+\begin{itemize}
+  \item Globalmente unico: un host può avere più indiritti ma un indirizzo non può essere associato a più host.
+  \item Gerarchico: un indirizzo è diviso in due parti, la prima che denota la rete e la seconda che denota l'host della rete.
+\end{itemize}
+Gli indirizzi IPv4 sono grandi 32 bit e sono scritti utilizzando la dot notation (es. 10.3.2.4). Gli indirizzi IP sono raggruppati in 3 grandi classi:
+\begin{itemize}
+  \item Classe A: iniziano con 0, i successivi 7 bit sono il network number e i restanti 24 bit sono l'host number.
+  \item Classe A: iniziano con 10, i successivi 14 bit sono il network numeber e i restanti 16 bit sono l'host number.
+  \item Classe A: iniziano con 110, i successivi 21 bit sono il network numeber e i restanti 8 bit sono l'host number.
+\end{itemize}
+\textbf{NB. Gli indirizzi che cominciano con 111 non vengono utilizzati per gli host, appartengono alla classe D utilizzata per il multicast}
+\subsection{IP Datagram Forwarding}
+Si basa sugli indirizzi, c'è una tabella dove ci sono tutti gli indirizzi IP e vedo a quale interfaccia devo inoltrare il datagram. Nel livello 3 non si parla più di forward sulla rete ma su reti, dato che i datagram vengono scambiati fra router.
+\subsubsection{Strategia di comunicazione}
+I router sono macchine semplici,economiche,devono essere veloci,robuste e affidabili; l'algoritmo di routing quindi deve essere molto veloce,economico e semplice.
+\begin{example} 
+  Supponiamo che a ciascuna delle reti in figura. Prendendo in considerazione R2, lui deve sapere dove inviare i pacchetti che gli arrivano, quindi consulta la sua routing table.Arriva un pacchetto destinato a R1.R2 sa che è collegato a R1 e R3 e che R1 è più vicino, quindi manda i pacchetti a R1 in modo che mi faccia da intermediario.
+  \textit{mettere foto} \\
+\end{example}
+\subsubsection{Algoritmo di Forwarding}
+\begin{algorithm}
+\caption{PacketForwarding}
+\begin{algorithmic}[1]
+\Procedure{PacketForwarding}{$packet$}
+    \If{NetworkNum(destination) = NetworkNum(one of my interfaces)}
+        \State Deliver packet directly to destination over that interface
+    \ElsIf{NetworkNum(destination) is in forwarding table}
+        \State Deliver packet to NextHop router
+    \ElsIf{default router exists}
+        \State Deliver packet to default router
+    \Else
+        \State Drop packet
+    \EndIf
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+\section{Subnetting}
+Può succedere che le reti A e B siano troppo grandi per una singola rete fisica quindi viene aggiunto un ulteriore livello per indirizzare: la subnet.Le subnet mask definiscono una partizione variabile di un host che appartienie alla classi di indirizzo A o B (in base alla rete fisica). Inoltre sono visibili solo internamente alla rete. Per capire qual è qual è l'indirizzo della sottorete non basta solo l'indirizzo IP ma server anche la subnet mask.
+\subsection{Classless Inter-Domain Routing}
+\begin{Question}
+  Si può aggregare reti piccole per implementare una rete più grande?
+\end{Question}
+La risposta è si, grazie al \textit{instradamento senza classi}. E' una tecnica di subnetting che fa esattamente l'opposto a quella che usa le classi.L'idea alla base è quella di raggruppare reti diverse e contigue in un'unica.
+\begin{example}
+  Se si prendessero due reti di classe C, 200.7.9.0 con netmask 255.255.255.0 e 200.7.1.0 con stessa subnet mask, e le si fondessero in una si otterrebbe un indirizzo 200.7.0.0 con subnet mask 255.255.254.0, in cui il bit meno significativo diventa uno spazio di indirizzamento e al posto di avere 7 bit di indirizzamento per gli host, se ne hanno 9, per cui la rete non è più vista come due separate, ma come una sola, il cui primo indirizzo è 200.7.0.1, mentre l’ultimo è 200.7.0.255 (broadcast).
+\end{example}
+Questo meccanismo lo si può anche applicare a più di due sottoreti contigue, ad esempio se si prendessero quattro reti contigue, si dovrebbero dedicare 2 bit e non 1 come prima alla parte di indirizzamento (quindi alla parte host) ottenendo una netmask 255.255.252.0, poiché si hanno questi 2 bit aggiuntivi di suddivisione,e 1024 indirizzi disponibili. Infatti, si riesce a “assemblare” reti più piccole per ottenere reti intermedie che non corrispondono esattamente a una specifica classe, ma sono una via di mezzo tra due, modellando quindi la dimensione della rete fino a adattarla a quella necessaria a un utente (col sistema a classi invece si sceglie la prima configurazione che riesce a contenere il numero di host).In questo modo si aumenta l’ efficienza di assegnazione degli indirizzi e si risolvono due problemi di scalabilità in Internet: la crescita delle tabelle di instradamento della dorsale, in quanto è necessario memorizzare un numero sempre maggiore di numeri di rete, e il potenziale esaurimento dello spazio degli indirizzi a 32 bit. Con efficienza nell’ assegnazione degli indirizzi si intende che a causa della struttura degli indirizzi IP con indirizzi di classe A, B e C, si costringe a distribuire lo spazio degli indirizzi di rete in parti fisse di tre dimensioni molto diverse (es.: una rete con due host ha bisogno di un indirizzo di classe C che ha efficienza di assegnazione $2/254 = 0,78\%$, mentre una rete con 256 host ha bisogno di un indirizzo di classe B che ha efficienza di assegnazione dell’indirizzo di 256/65535 = $0,39\%$). Mentre nel caso classless si possono ridurre gli sprechi sugli indirizzi (che si rischia di non usare) ottimizzandone l’efficienza complessiva.
+\subsubsection{Classless Addressing}
+In realtà, le reti odierne hanno anche un’altra problematica: al giorno d’oggi non si possono più assegnare classi B o A se non si dimostra che se ne ha realmente bisogno. Questo perché una classe B utilizza spazi di 65535 indirizzi per gli host e se non se ne utilizza almeno la metà non ha molto senso assegnare tale indirizzo così grande. Inoltre, non è sempre possibile effettuare un reclamo per farsi dare uno spazio/classe di indirizzi inferiore se ci si accorge che in realtà se ne usano molti di meno. Per cui una soluzione può essere quella di dare un numero adeguato di indirizzi di classe C, quindi per qualsiasi Autonomous System (AS) con almeno 256 host, si può garantire un utilizzo dello spazio degli indirizzi di almeno il 50\%. Tuttavia anche questa soluzione ha un problema: l’eccessivo fabbisogno di memoria nei router. Infatti, se a un singolo AS sono assegnati, per esempio, 16 numeri di rete di classe C, ogni router della dorsale Internet ha bisogno di 16 voci nelle sue tabelle di routing per quell’ AS, anche se il percorso verso ognuna di queste reti è lo stesso. Se invece si avesse assegnato una rete di classe B all’AS, le stesse informazioni di routing possono essere memorizzate in un’unica voce, con un’efficienza di $16 × 255 / 65536 = 6,2\%$.
+\subsubsection{Classless Adressing: route aggregation}
+Di seguito un altro esempio aggregazione di instradamenti, in cui il router R1 è collegato a quattro sottoreti di diverso tipo, tutte da /26, per cui la loro subnet mask è di 255.255.255.192 (in quanto fino ai tre 255 si ha /24 a cui si sommano 2 bit per cui 128+64). Per quanto riguarda il router R1 ha la tabella completa in quanto deve sapere dove inviare i pacchetti per ogni singolo indirizzo,mentre R2 vede solo una rete aggregata. Da notare che i due router hanno degli indirizzi di default, per cui se arriva un messaggio il cui indirizzo IP non corrisponde nessuno di quelli rilevati, allora si inoltra a quello di default (non è un obbligatorio che il router lo abbia, e neanche NON è da confondere col destination unreachable).
+\subsection{IP Forwarding rivisitato}
+Arrivati a questo punto è possibile effettuare una modifica all’ algoritmo di forwarding, in particolare è possibile che i prefissi nelle tabelle di inoltro si sovrappongano, come anche che alcuni indirizzi possano corrispondere a più di un prefisso.
+\begin{example}
+  Nella tabella di inoltro di un router si potrebbe trovare 140.24.7.0/24 e 140.24.7.192/26 in quest’ordine e se un pacchetto è destinato a 140.24.7.200 corrisponde chiaramente a entrambi i prefissi. La maggior parte dei router sceglie seguendo il principio della “corrispondenza più lunga” (longest match forwarding), ovvero la sequenza che corrisponde (match) e che ha il prefisso più lungo (140.24.7.192/26 in questo caso).
+\end{example}
+Dunque, i router che adottano questa tecnica prediligono le reti più piccole (e tecnicamente è più probabile che sia quella più precisa/corretta). Altri, invece, eseguono una scansione sequenziale della tabella di inoltro e applicano la prima regola di corrispondenza. In questo caso, un pacchetto destinato a 140.24.7.200 corrisponderebbe a 140.24.7.0/24 e non a 140.24.7.192/26.
+\subsection{Indiritti IP speciali}
+\begin{itemize}
+  \item 0.0.0.0/8: indirizzo non valido, anche chiamato null address
+  \item 10.0.0.0/8, 172.16.0.0/12 192.168.0.0/16: utilizzati per le reti private, non sono instradabili sull'internet
+  \item 127.0.0.0/8: indirizzo di loopback
+  \item 169.254.0.0/16: indirizzo autoassegnato in un link locale quando il DHCP non è disponibile
+  \item x.y.z.y/31 questa subnet ha esattamente 2 indirizzi, in teoria nessuno per gli host ma in pratica se ne possono utilizzare 2 (utilizzati solo per collegamenti PTP,RFC3021)
+  \item 224.0.0.0/4: Classe D o indirizzi multicast
+  \item 240.0.0.0/4: Classe E o indirizzi riservati per usi futuri. (Non si utilizzano quasi mai)
+\end{itemize}
+\section{Protocolli IP ausiliari}
+Sono i protocolli di supporto/aiuto dell'IP(senza essi non riuscirebbe a fare il proprio lavoro). Esistono di tipi diversi, ad esempio ARP, ICMP, DHCP, ecc. e alcuni di essi risiedono nel livello 3 dello stack, altri invece (es.: DHCP) stanno più in alto. Quelli del livello 3 stanno li perchè o usano le funzionalità del livello sottostante oppure perche utilizzano il livello 3 stesso ma non sono protocolli di trasporto (non trasportano dati). Il DHCP è di livello applicativo però risolvono specifi problemi del lv. 3 (problema del autoconfigurazione).
+\subsection{Addres Translation Protocol (ARP)}
+Per quanto riguarda l’inoltro dei pacchetti, il router deve sapere dove inviarli, indipendentemente dalla tecnologia utilizzata e sfruttando i link a esso collegati. Esso deve saper associare ad esempio un indirizzo Ethernet (livello 2) a un indirizzo IP (livello 3), semplicemente riconoscendo gli indirizzi all’interno dei frame. Il router mappa gli indirizzi IP logici in indirizzi fisici e li inserisce in una tabella ARP. In quella tabella saranno presenti gli indirizzi logici IP e quelli fisici MAC a cui fanno riferimento. In realtà, non c’è alcuna relazione tra MAC address e indirizzo IP, quindi un router deve avere una riga della tabella per ogni host a esso collegato (direttamente) per sapere dove inviare i pacchetti. Gli indirizzi memorizzati possono essere di un host di destinazione oppure di un router intermedio (next hop). Le entry della tabella possono essere gestite anche manualmente, ma è scomodo, dunque si fa solo in caso di reti piccole. Infatti di solito si lascia la gestione automatica gestita dal protocollo apposito, ovvero ARP (Address Resolution Protocol). Esso si occupa di gestire la tabella dei collegamenti tra indirizzi IP e fisici. Infatti, si hanno quattro scenari possibili quando si inoltra e/o riceve pacchetti (figura a lato), in cui comunicazione avviene: tra host e host, tra host e router, tra router e router oppure tra router e host.
+\begin{enumerate}
+  \item Se un host deve inviare un pacchetto ad un'altro host nella rete locale(quindi l'indirizzo della rete è lo stesso), l’indirizzo IP viene incapsulato in un frame Ethernet che ha come MAC address quello del destinatario vero e proprio e poi viene spedito sulla rete locale e si occupano gli switch di farlo arrivare a destinazione.
+  \item Il pacchetto non è di un host della rete locale, per cui si deve utilizzare almeno un router intermedio e quindi si utilizzerà l’indirizzo IP del gateway per fare in modo che il messaggio esca dalla rete locale. Dunque, il pacchetto IP dovrà essere incapsulato in un frame il cui MAC address è quello dell’interfaccia del gateway.
+  \item Un router riceve un pacchetto e deve controllare dove inviarlo e tramite la sua tabella di inoltro sa che per avvicinare il messaggio al destinatario deve consegnarlo a un router intermedio (next hop), dunque delega a esso la consegna. Per cui crea un frame apposito per la comunicazione e lo spedisce.
+  \item Il messaggio arriva all’ultimo router intermediario, per cui esso quando riceve il pacchetto, controlla la propria tabella e si accorge che il destinatario è nella sua sottorete, per cui glielo consegna direttamente.
+\end{enumerate}
+\subsubsection{Formato del pacchetto ARP}
+Il packet è formato da diverse parti, sotto ne vengono elencate le più importanti.
+\begin{itemize}
+  \item Hardware Type: 1B che specifica il tipo di HW (se è 1 significa Ethernet)
+  \item ProtocolType: specifica il protocollo utilizzato, in quanto ARP può usarne diversi tipi.
+  \item HLEN e PLEN: indicano la lunghezza degli indirizzi fisici e di protocollo.
+  \item Operation: serve per riferirci alla richiesta o alla risposta.
+  \item Indirizzi fisici/protocollo e sorgente/target.
+  \item TargetHardwareAddr (nella richiesta il campo è vuoto).
+\end{itemize}
+I pacchetti ARP non utilizzano IP (ovviamente) e sono incapsulati direttamente nei frame del datalink (es.: Ethernet, qui affianco). Sono composti da preambolo, da due indirizzi, dal tipo (in questo caso essendo un ARP ha il type 0x0806), dai dati della richiesta/risposta e dal CRC.
+\subsubsection{Proxy ARP}
+Un ARP proxy è un host che rappresenta altri host (spesso intere reti) e che risponde con il proprio MAC alle richieste ARP degli host “nascosti”. Esso inoltra i frame che riceve alle destinazioni corrette, come uno switch (ma cambiando l’indirizzo MAC).
+\subsection{Host Configurations}
+Precedentemente si è visto il caso degli indirizzi Ethernet che sono configurati in rete dal produttore e sono unici, mentre per quanto riguarda gli indirizzi IP devono essere unici in una determinata rete Internet, ma devono anche riflettere la struttura della rete Internet. La maggior parte dei sistemi operativi host fornisce un modo per configurare manualmente le informazioni IP per l’host. Tuttavia vi sono degli svantaggi nella configurazione manuale: è necessario molto lavoro per configurare tutti gli host di una rete di grandi dimensioni e il processo di configurazione è soggetto a errori, per cui è necessario un processo di configurazione automatizzato. Per fare ciò, una volta si usava il protocollo RARP (Reverse ARP), in cui un host dice quale è il suo MAC address e si fa dare un indirizzo IP (quindi l’opposto dell’ ARP in cui si chiede chi ha un certo host), oppure il protocollo BOOTP . Invece, oggigiorno si utilizza un protocollo di livello 7 chiamato DHCP (Dynamic Host Configuration Protocol), il quale necessita di un server (almeno uno per un dominio amministrativo) che tenga traccia degli indirizzi IP  assegnati al client (pool di indirizzi), dunque di un sistema che memorizzi lo stato della rete. Il server DHCP è responsabile della fornitura di informazioni di configurazione agli host e assegna gli indirizzi su richiesta. Dunque quando un host necessita di un indirizzo interroga il server e questo gliene fornisce uno in maniera statica (es.: in base agli indirizzi MAC) oppure dinamica (“lease” limitati nel tempo). L’opzione di scelta di un indirizzo IP statico basato su MAC address è comodo nelle casistiche di dispositivi come stampanti, server o calcolatori, ecc. in cui si vuole sempre avere lo stesso indirizzo quando sono disponibili e connessi alla rete. Un server DHCP può servire più reti contemporaneamente, anche se non direttamente collegate. Per ogni rete è necessario un agente di relay DHCP che ascolti le richieste DHCP. Gli agenti di relay DHCP non assegnano gli indirizzi; semplicemente inviano i messaggi al server DHCP e attendono la risposta, da inviare nelle reti locali. Il lease (assegnazione dell’IP) dell’indirizzo avviene dopo un certo periodo di tempo, che può essere scelto dall’amministratore di sistema. Tuttavia se un cliente ha bisogno di più tempo deve rinnovare il tempo mandando una richiesta al server DHCP e può non essere accettata. Come già detto, il server DHCP deve mantenere lo stato della rete (anche molto vasta) e ricordarsi a quali host ha dato certi indirizzi IP. Si supponga che questo si spenga (o venga resettato) e poi venga riacceso, a quel punto non ricordandosi a chi aveva assegnato cosa e con quale timer di scadenza potrebbe essere che due o più host si trovino con indirizzi uguali. Questo condurrebbe ad un disastro.
+\subsubsection{Meccanismo di funzionamento}
+L’host (chiamato supplicant),appena avviato o collegato,invia un messaggio DHCP di DISCOVER con un indirizzo IP di destinazione broadcast (“broadcast limitato”, ignorato dai router), mentre per quanto riguarda l’indirizzo IP di origine è irrilevante. Il messaggio contiene anche l’indirizzo MAC dell’host di origine. Il pacchetto in realtà è una sorta di richiesta di presenza del server DHCP, che potrebbe anche non esserci in quella sottorete. Se esiste un server DHCP, esso risponde con un pacchetto che contiene l’indirizzo IP offerto e lo trasmette in broadcast o lo consegna direttamente solo all’host di origine (utilizzando il suo MAC, non il suo IP poiché non ne ha ancora uno). Il client chiede conferma al server e ,in caso positivo, il client DHCP imposta l’indirizzo IP locale (e altri parametri, come gateway, subnet mask, router, DNS, ecc.) sull’host. Se invece non è presente alcun server DHCP, e quindi dopo un certo intervallo di tempo la richiesta del client scade, esso si inventa un indirizzo IP della famiglia/classe 169.254.0.0/16 (indirizzo speciale).
+\subsection{Internet Control Message Protocol (ICMP)}
+E' un protocollo che definisce un insieme di messaggi di errore e di notifica che vengono rispediti all’host di origine ogni volta che:
+\begin{itemize}
+  \item  Un router o un host non è in grado di elaborare un datagramma IP con successo (es.: host di destinazione irraggiungibile per un guasto del collegamento/nodo, processo di riassemblaggio fallito magari per colpa dei timeout scaduti, TTL raggiunto a 0 e quindi il datagramma è stato scartato, il checksum dell’intestazione IP è fallito, ecc.).
+  \item Esiste un percorso migliore per quella destinazione (es.: dal router all’host di origine, chiamato ICMP-Redirect).
+\end{itemize}
+In tutti i casi, viene notificato solo l’host sorgente. \\
+Tutti questi sono in realtà delle sorte di messaggi di diagnostiche e di controllo e verifica del sistema/rete. Essi non trasportano né dati, né informazioni di configurazione, ma solamente dati di feedback della rete (es.: sullo stato, sul funzionamento, ecc.). In realtà ICMP è sopra IP, ovvero è incapsulato al suo interno. La parte iniziale del datagramma rifiutato (header + primi 8 byte del pacchetto) è inclusa nel messaggio ICMP, per facilitare l’ analisi e le contromisure. Quindi, si prendono le prime informazioni del messaggio da scartare e le si inseriscono come dati di un pacchetto ICMP, a sua volta incapsulato in un pacchetto IP. Questo lavoro può essere svolto da un router intermedio qualsiasi.
+\subsubsection{Tipologie di richieste ICMP}
+\begin{itemize}
+  \item Comando ping: invia pacchetti ICMP per controllare se un host è raggiungibile (es. ping "indirizzo IP").
+  \item Comando traceroute: è utile per scoprire il percorso che fanno i pacchetti per arrivare ad una certa destinazione. Non è affidabilissimo perchè per natura propria delle reti a commutazione di pacchetto ogni singolo pacchetto può prendere una strada diversa. Quando eseguo il comando, per esempio con argomento "www.google.it", inizia a mandare un ping a quel'indirizzo con TTL=1, il quale arriva al mio router che poi lo inoltra avanti e decrementa il TTL=0. Il risultato è che come prima cosa scopro il mio gateway (è la prima cosa che becca). Successivamente verrà inviato un pacchetto con TTL=2 e cosi scopro il router successivo e gli hop. Incrementando sempre di più il TTL pian piano scopro dove arriva il mio pacchetto.
+\end{itemize}
+\subsubsection{ICMP-Redirect}
+Questo non è un errore, ma è un utilizzo di ICMP come informativa utile. La situazione è la seguente: si ha ad esempio una rete in cui vi è un host A su una rete locale con due router e si vuole inviare un pacchetto all’host B. Guardando l’immagine sotto viene da pensare di passare per R2 per inviare il pacchetto a B, tuttavia A potrebbe essere configurato con R1 come gateway. R1 quando riceve un pacchetto da A verso B, si accorge che sono nella stessa rete (esiste quindi un percorso migliore), per cui invia il pacchetto a B e notifica l’host A che (la prossima volta) può inviarlo direttamente lui, senza passare per R1. Di conseguenza A riconfigura le proprie tabelle di inoltro (quindi adesso per inviare a B ci sarà un riferimento nella tabella che dice di passare per R2).
+\section{Reti IP private e NAT}
+L’idea è quella di creare una serie di IP privati separati dal resto della rete per il routing interno. Per fare questo si utilizza un router speciale per fare da ponte tra la LAN e la WAN e si andranno ad adoperare indirizzi speciali che sono privati(non sono instradabili). Tipicamente si utilizzano questi range:
+\begin{itemize}
+  \item 10.0.0.0/8 \textrightarrow 10.0.0.1 - 10.255.255.255
+  \item 172.16.0.0/12 \textrightarrow 172.16.0.1 - 172.31.255.255
+  \item 192.186.0.0/16 \textrightarrow 192.168.0.1 - 192.168.255.255
+\end{itemize}
+Il vantaggio di usare IP privati è che è possibile slegarsi dalle rigide regole degli IP pubblici (es.: gerarchia, assegnamento, ecc.), non serve fare richieste a nessuno, si può riciclare degli indirizzi limitati, ecc. Così facendo si hanno molteplici duplicazioni degli stessi indirizzi a livello globale, per cui a questo punto si deve introdurre un meccanismo di riconoscimento delle varie reti e di instradamento dei pacchetti. Quando ci si connette a una rete, il server DHCP assegna al dispositivo un indirizzo IP univoco all’interno della sua sottorete (non importa che non lo sia al livello globale). Idem accade con la telefonia, in cui il provider telefonico assegna un indirizzo IP in un certo range privato al dispositivo mobile. I pacchetti che provengono da questi host, non essendo più con indirizzi univoci, non possono essere instradati nella rete perché sono ambigui. I router normali delle reti Internet, quando vedono passare dei pacchetti con indirizzi mittente e destinatario ,con IP compresi nei range specificati sopra, li scartano. Per cui si usa un dispositivo di traduzione degli indirizzi, ovvero il NAT (Network Address Translation), che viene implementato da un router/dispositivo speciale di livello 3, situato al confine di una rete privata, e che trasforma gli indirizzi di un range privato in indirizzi di un range pubblico cambiando anche le intestazioni dei pacchetti inviati. La connettività fornita non è continua e il router NAT può anche sostituire i numeri di porta TCP/UDP (Port Mapping). Inoltre, esso deve mantenere una tabella dei flussi attivi: i pacchetti in uscita inizializzano una entry della tabella, mentre quelli in arrivo vengono riscritti in base alla tabella.
+\subsubsection{Funzionamento base del NAT}
+\begin{example}
+  Si supponga di avere una rete privata comunicante con una rete Internet tramite un router. Un host della rete privata vuole inviare un messaggio a un server connesso sulla rete pubblica. Il pacchetto che esso invia al suo gateway (es.: 192.168.0.1) contiene il vero indirizzo di destinazione e il suo vero indirizzo IP (del mittente). Il router a questo punto sostituisce l’indirizzo privato con quello pubblico, lo segna su una sua tabella interna e spedisce un nuovo pacchetto col contenuto di quello precedente, ma con una nuova intestazione con l’indirizzo mappato (quello del router). Il messaggio poi arriva al server che risponde inviando un nuovo pacchetto col suo indirizzo sul campo source (mittente) e con indirizzo di destinazione quello del router che gli ha inviato il pacchetto (eventualmente con un numero di porta diverso). Quando il messaggio arriva al router, esso guarda la sua tabella di inoltro e crea un nuovo pacchetto con l’indirizzo di destinazione dell’host mittente di prima e che si era segnato sulla tabella e lo invia. A quel punto l’host della rete privata riceve la risposta del server.
+\end{example}
+\subsubsection{Funzionamento base del NAT con PAT}
+\begin{example}
+  Nel caso in cui vi fosse più di un host che vuole utilizzare la stessa porta sorgente (intesa la propria porta), il router mapperà su porte differenti i diversi indirizzi IP (con "porte differenti" si intendono le porte del router). Il meccanismo di inoltro e scambio degli indirizzi privati/pubblici è identico a prima, tranne per il fatto che quando i pacchetti tornano indietro, il router dovrà cambiare non solo l’indirizzo del mittente, ma anche la porta verso cui inoltrare il datagramma. Questo nuovo meccanismo si chiama NAT e PAT (Port Address Translation), molto spesso si chiama NAT tutto quanto.
+\end{example}
+\subsubsection{Applicazioni del NAT}
+\begin{itemize}
+  \item Il NAT consente la condivisione di un IP pubblico tra più indirizzi privati, in questo modo si possono avere pochi indirizzi pubblici unici e tanti indiritti privati ripetibili.
+  \item Inoltre, consente e semplifica la migrazione tra ISP, ad esempio se si ha una rete con un certo numero di indirizzi privati,si è indipendenti dagli indirizzi pubblici, quindi si può configurare tutta la rete con indirizzi privati (non importa chi degli host è un indirizzo pubblico) e se si cambia provider, non serve riconfigurare tutti gli indirizzi in quanto restano quelli, a eccezione fatta per il router (indirizzo pubblico).
+  \item Infine, si può usare il NAT per fare bilanciamento del carico (load balancing), ovvero quando arrivano le richieste, un router potrebbe forwardarle a più di un server. Esternamente appare come un unico indirizzo, tuttavia nella rete c’è questo dispositivo chiamato load balancer che guarda lo stato del pool dei server e trasforma la richiesta in arrivo in una richiesta per il server più “scarico". La risposta viene poi inviata normalmente come se fosse stato un unico indirizzo (quello che il mittente si aspettava).
+\end{itemize}
+\subsection{Firewall}
+Il NAT viene anche utilizzato per motivi di sicurezza, o meglio per limitare la visibilità degli host, anche se non è una grande misura di sicurezza. Infatti, un host dietro a un NAT non è che non viene visto, il fatto è che il NAT non fa passare indirizzi da pubblico a host privato (i pacchetti con indirizzo di destinazione di un host privato vengono scartati). Tuttavia un host pubblico può spedire un pacchetto a un router a cavallo di una rete privata. Il router riconosce il messaggio, cerca il relativo indirizzo privato nella tabella e non lo trova: il pacchetto viene scartato. Questo perché la tabella interna non ha registrato alcun passaggio da indirizzo privato a uno pubblico che corrisponde a quella porta. Infatti il NAT mappa solamente da privato verso il pubblico e non viceversa.Tuttavia è possibile configurare (esplicitamente) il router in maniera tale che conceda l’accesso a pacchetti che arrivano a una certa porta per un certo indirizzo, anche se arrivano da un indirizzo pubblico verso uno privato. Questa tecnica si chiama port forwarding e fa in modo che nella tabella interna al router compaiano delle entry che consentano l’ accesso a un certo indirizzo privato configurato esplicitamente. Questo meccanismo però crea dei buchi di sicurezza in quanto apre l’accesso all’esterno, anche se in maniera limitata (es.: osservando il traffico di pacchetti è possibile vedere quale indirizzo di una certa macchina è uscito dalla rete e simulando un pacchetto che esce fuori da dentro alla rete e che usa come IP l’indirizzo di una terza macchina interna, questo finisce nel NAT e lo configura aggiungendo una entry in maniera da potersi poi garantire l’accesso).
+\subsection{Hole Punching}
+\begin{Question}
+  Come abilitare la connettività attraverso i NAT?
+\end{Question}
+Se due reti hanno il NAT, si escludono l’accesso a vicenda, poiché i pacchetti verrebbero riconosciuti come locali oppure si rischia che non abbiano il corretto accesso dall’esterno verso l’interno. Una possibile soluzione per la comunicazione potrebbe essere quella di utilizzare l’indirizzo IP del router esterno alla rete NAT destinataria e quest ultimo tramite port forwarding conceda l’accesso a qualche macchina locale. Quindi almeno una delle due reti fa il port forwarding, tuttavia non è sempre garantita come cosa (più che altro per sicurezza interna). Altrimenti c’è un’altra soluzione chiamata \textit{hole punching}, ovvero una tecnica che consiste nel creare una sorta di buco nel firewall del NAT. Essa ha possiede due protocolli: lo STUN e il TURN.
+
+\subsubsection{STUN}
+Lo STUN (Session Traversal Utilities for NAT) risiede in un server esterno alla rete e serve per scoprire il proprio indirizzo IP pubblico (questo perché le macchine dentro a una rete locale non sanno con quale indirizzo IP possono uscire). In una rete vi possono essere più NAT annidati (es.: in un’azienda ci potrebbe essere un NAT per ufficio, poi uno complessivo dell’ azienda, ecc.), per cui può essere che l’indirizzo IP locale venga cambiato più volte, per cui a maggior ragione un host può necessitare di sapere il suo indirizzo IP pubblico. Ad esempio anche i container di Docker creano una sorta di NAT con un range di indirizzi per cui può essere utile sapere l’indirizzo pubblico. \\
+\textbf{Funzionamento:}
+Il server STUN che viene interrogato, sfrutta una terza parte per fare l’eco dell’indirizzo IP globale da cui arriva la richiesta (l’ultimo router). Questa funzionalità è stata creata per le macchine, non per far sapere a un essere umano quale sia il suo IP. Questo protocollo viene utilizzato anche per sondare i NAT/firewall simmetrici, ovvero quando si è un peer dentro a una NAT simmetrica e l’altra rete con cui si vuole comunicare è pubblica o con port forwarding (o comunque un NAT parziale e non totale, perché altrimenti non si avrebbero le tabelle di inoltro popolate). In questo modo si riesce a sapere il proprio indirizzo IP pubblico e a passarlo a un’altra NAT. Tuttavia nemmeno questo basta per l’intento: se non si ha un port forwarding apposito si rischia che all’invio del pacchetto esso non riesca a passare al di là del router perché non è stata popolata la entry della tabella, per cui per risolvere bisogna avere un altro server, chiamato TURN.
+\subsubsection{TURN}
+Il server TURN (Traversal Using Relays around NAT) fa da forwarder e contemporaneamente consente di popolare un po’ le tabelle (gli host che vi si collegano è come se si “registrassero”). Esso è pubblico, per cui è accessibile da tutte le reti. Gli host che comunicano con esso non si conoscono tra di loro, tuttavia grazie a uno STUN sono riusciti a scoprire i loro IP pubblici uno dell’ altro. I tentativi di comunicazione diretti tra una rete e un’altra fanno sì che le tabelle dei router si popolino, però il router del destinatario rifiuta la connessione esterna, per cui la rete NAT mittente non riceve la risposta. A questo punto si passa a utilizzare il server TURN, il mittente invia al server una richiesta di inoltrare un pacchetto alla rete dell’host destinatario e questo la forwarda dall’ altra parte, il pacchetto riesce a entrare nella rete NAT del destinatario in quanto prima erano state inviate le richieste al server. Arrivati a questo punto, il destinatario può comunicare direttamente con la rete del mittente in quanto le tabelle dei router sono state popolate correttamente.Un esempio pratico di questo meccanismo è quello utilizzato dai NAS, per cui un NAS locale diventa accessibile all’esterno (es.: un NAS casalingo accessibile anche da mobile in giro).
+\subsection{Preoccupazioni relative al NAT}
+Il NAT crea delle piccole complicazioni, specialmente per quanto riguarda le performance e la scalabilità, per via delle trasformazioni, intestazioni, calcolo dei checksum, per ogni pacchetto e anche per tenere lo stato del flusso, di conseguenza è necessario avere sufficiente memoria. Inoltre, per stabilire la connessione serve la richiesta degli IP pubblici, la comunicazione con un server, ecc. di conseguenza aumenta anche il traffico dei pacchetti supplementari alla comunicazione effettiva. Questo comporta una leggera perdita di astrazione a cui si aggiunge anche una rottura della connettività Internet end-to-end. È da tenere conto che il NAT nasce per creare delle reti private scollegate da Internet, per cui il fatto che sia stata aggiunta una connessione alla rete Internet esistente ha comportato a delle modifiche, soprattutto per quanto riguarda gli indirizzi speciali,che non possono essere instradati direttamente e quando si hanno host di NAT diverse e annidate. Nel complesso, il NAT è un “male necessario”: quasi tutte le reti create negli ultimi 20 anni si trovano dietro uno o più NAT e non sarebbe necessario se avessimo un numero sufficiente di indirizzi IP pubblici. Inoltre, la separazione della rete può essere ottenuta utilizzando i firewall.
+\section{Routing}
+\subsection{Routing vs Forwarding}
+A questo punto resta da vedere la parte relativa all’instradamento (routing) vero e proprio, compresa la costruzione della tabella di inoltro. Per capire questo fenomeno bisogna introdurre i due layer/livelli della rete Internet, ovvero i data plane e i control plane. I primi appartengono agli switch e sono per l’inoltro dei pacchetti, mentre i secondi ai router e sono algoritmi di instradamento. I data plane sono quindi algoritmi per il forwarding dei pacchetti, ovvero il fatto di poterli inviare verso la loro destinazione, mentre i secondi, i control plane, servono per sapere dove mandarli effettivamente (routing = instradamento), infatti regolano il funzionamento dei data plane. Questo meccanismo risulta essere ben visibile all’interno di una rete, specialmente nel caso delle SDN (Socket Defined Network). In realtà ci sarebbe anche un terzo piano/layer di gestione (management) di tutto questo meccanismo, in particolare il control plane, in quanto è il responsabile degli instradamenti. Altre differenze tra gli algoritmi di inoltro e quelli di instradamento sono:
+\begin{itemize}
+  \item Inoltro:
+        \begin{itemize}
+          \item seleziona una porta di uscita per ciascun pacchetto, in base all’indirizzo di destinazione e alla tabella di inoltro
+          \item deve essere semplice e veloce
+          \item possibilmente implementato in hardware
+        \end{itemize} 
+  \item Instradamento:
+        \begin{itemize}
+          \item processo di costruzione della tabella di routing, che è precursore della tabella di forwarding
+          \item viene eseguito come processo in background (nello spazio utente)
+          \item può essere complesso
+        \end{itemize}
+\end{itemize}
+Quindi per quanto riguarda il forwarding, è un meccanismo che controlla gli indirizzi dei pacchetti in arrivo e tramite un’ apposita tabella di inoltro sa su quale interfaccia deve essere mandato fuori un pacchetto per fare in modo che arrivi alla corretta destinazione. Per cui gli algoritmi devono essere molto efficienti e semplici.Invece, per quanto riguarda il livello di controllo del routing, esso ha l’incarico di costruire le tabelle di forwarding o, più precisamente, mantiene delle tabelle di informazioni extra da cui si derivano le tabelle di inoltro. Per questo motivo vengono definite precursori delle tabelle di inoltro,molto diverse tra loro e soprattutto cambiano in base all’ algoritmo di routing applicato (algoritmi diversi applicano metodologie e strutture dati diverse, anche se le tabelle finali di forwarding sono simili). Il fatto che gli algoritmi di routing sono molto complessi, fa sì che debbano essere eseguiti una volta ogni tanto (es.: una volta al minuto o ogni 10 secondi), ma non periodicamente. Infatti i router eseguono due compiti principali: forwarding dei pacchetti (semplice e veloce) e la costruzione delle tabelle di instradamento, da cui poi ricavare le tabelle di forwarding (complesso).  Stessa cosa vale per control plane e data plane, il primo decide come i dati debbano essere trasportati, il secondo deve solo inviarli. Per creare la tabella di routing, costruita dagli algoritmi di routing, si utilizzano le informazioni ricevute da altri nodi della medesima rete. Infatti gli algoritmi si parlano tra di loro attraverso i router e i pacchetti IP.I router quindi dialogano tra di loro in maniera distribuita/concorrente in modo da tenersi aggiornati sugli eventi che accadono all’interno della rete e se serve aggiornano lo stato e le tabelle di routing (e di conseguenza anche quelle di forwarding).Altra cosa molto interessante è che i router tengono traccia anche delle distanze, ovvero il “costo” per poter raggiungere un destinatario. Anche questo parametro deve sempre essere aggiornato e può cambiare le politiche di inoltro e instradamento in base al percorso che l’algoritmo dichiara più efficiente. Inoltre, possono essere calcolate diverse metriche/misure e costi, es.: percorso minimo, percorso più “economico”, ecc.
+\begin{example}
+  Si supponga di avere una tabella di routing e una di forwarding. \\
+  (a) tabella di routing: utilizzata dal piano di controllo, contiene dati di livello 3, con informazioni su costi, distanze, ecc. \\
+  (b) tabella di inoltro: utilizzata dal piano dati, contiene i dati per l’inoltro dei pacchetti: quale interfaccia, indirizzo del prossimo hop, ecc. \\
+  Ad esempio la rete 18/8 di (a) necessita di 171.69.245.10 come next hop, che ha un costo 3, per cui può risultare più efficiente della seconda sotto che ha un costo maggiore.
+\end{example}
+\subsection{Algoritmi di Routing}
+Con i meccanismi appena visti, è possibile vedere la rete come grafi (pesati e tipicamente non orientati, anche se in alcuni casi possono esserlo), in cui i nodi sono i router collegati alle reti (di base), i link sono le connessioni/collegamenti o archi del grafo e i costi (es.: velocità, latenza, costi, tasso di perdita, ecc.) sono i “pesi” degli archi. Il problema di base del routing è trovare il percorso col costo più basso tra due nodi qualsiasi, dove il costo di un percorso è uguale alla somma dei costi di tutti gli archi che lo compongono. Infatti, i router possono avere più tabelle di instradamento in base al tipo di servizio richiesto (es.: una tabella per i percorsi più affidabili, ma dispendiosi, oppure quelli più veloci per due punti molto distanti, ecc.). Tuttavia esistono degli svantaggi, è difficile infatti avere un algoritmo unico per tutta Internet,oltre al fatto che vi sono problemi di scalabilità, indipendentemente da quale algoritmo di Spanning Tree, o di percorso minimo, che si vuole applicare (mappare una rete grande potrebbe essere così tanto dispendioso che per quando la si ha mappata tutta nel frattempo potrebbe essere già cambiata).Inoltre, domini amministrativi diversi possono scegliere politiche di instradamento diverse (es.: un router potrebbe calcolare tutti i pesi per ritardo effettuato e un altro per massima velocità di trasmissione), per cui è meglio separare in due livelli:
+\begin{itemize}
+  \item all’interno dei sistemi autonomi (AS)
+        \begin{itemize}
+          \item ogni amministratore è responsabile degli algoritmi di routing
+          \item reti non troppo grandi \textrightarrow algoritmi più semplici (chiamati intra-domain, o protocolli interni)
+        \end{itemize}
+    \item tra sistemi autonomi (AS):
+        \begin{itemize}
+          \item problemi di raggiungibilità (reachability) piuttosto che di efficienza
+          \item algoritmi più complessi (chiamati protocolli inter-domain, o esterni)
+        \end{itemize}
+\end{itemize}
+Finché si è in una AS (intra-domain) si devono seguire le regole interne, ma quando si esce da essa, si deve sottostare alle regole delle altre AS o di quelli tra AS e AS (inter-domain). Con regole si intende come sono costruite le tabelle di inoltro. Questa situazione è simile a guidare un’ auto a sinistra o a destra (es.: EU e UK). I protocolli di inter-domain sono i più difficili da configurare (es.: ICP4) e anche un singolo errore può creare seri problemi catastrofici di comunicazione. Sono i talloni d’Achille per i sistemisti. Per una rete semplice, invece, si può calcolare tutti i percorsi più brevi e caricarli in una memoria non volatile su ogni nodo. Questo approccio statico presenta, però, diversi difetti: non gestisce i guasti dei nodi o dei collegamenti, non considera l’ aggiunta di nuovi nodi o collegamenti e implica che i costi dei bordi non possano cambiare. \\
+La soluzione? Adottare un protocollo distribuito e dinamico per la costruzione di ogni tabella di routing, in cui i router dialogano tra di loro e aggiornano le tabelle in base agli eventi succeduti nella rete. Per fare ciò, i router devono adottare gli stessi algoritmi e strategie in modo da potersi accordare. Tutti gli algoritmi utilizzati dai router possono essere classificati in tre classi principali di protocolli:
+\begin{itemize}
+  \item Vettore di distanza (distance vector): utilizzato nei protocolli interni come RIP
+  \item Stato di collegamento (link state): utilizzato in protocolli interni come OSPF e IS-IS
+  \item Vettore di percorso (path vector): utilizzato in protocolli esterni come BGP
+\end{itemize}
+Per quanto riguarda quelli interni, il RIP è un po’ obsoleto in questo periodo, tuttavia potrebbe trovarsi in utilizzo qualche sua variante, in quanto è ancora valido. Quello più utilizzato oggigiorno è il link state. Invece, per l’esterno si usano solamente algoritmi basati sul percorso, poiché essendo per reti molto ampie ci si accontenta di trovare un percorso valido (le ottimizzazioni sono difficili come già detto).
+\subsubsection{Distance Vector}
+Questo è l’algoritmo più semplice e con costi di implementazioni basse. L’ipotesi di partenza è che ogni nodo conosca il costo del collegamento con ciascuno dei suoi vicini direttamente connessi. Ogni nodo costruisce un array monodimensionale (vettore) contenente le “distanze” (costi) da tutti gli altri nodi e distribuisce tale vettore ai suoi vicini immediati.
+\begin{example}
+Si suppone di avere la seguente rete con la seguente tabella con le distanze dei nodi immediati (vicini), in cui ogni riga è il vettore di partenza. Col simbolo $\infty$ si intende che si sa che esiste un nodo ma non si sa quanto disti dal nodo di partenza. Nessun nodo per il momento vede tutta la tabella, ma solo la propria riga. Prendendo in considerazione ad esempio il nodo A, si può costruire la sua tabella di routing iniziale (figura a sinistra). Per i nodi di cui conosce le distanze sa anche qual è il next hop, mentre di quelli non direttamente a esso collegati non può avere attualmente un’informazione di dove mandare i pacchetti (visione parziale e soggettiva della rete). Tramite uno scambio ripetuto di pacchetti relativi alle distanze tra i router, a un certo punto A riesce ad avere una tabella completa per il forwarding (immagine a destra). Lo stesso varrà per gli altri router, per cui ognuno si ritroverà alla fine con una propria tabella completa della rete con cui sono in comunicazione.
+Di seguito quella completa della rete (visione globale):
+\subsubsection{Algoritmo di Bellman-Ford}
+L’algoritmo di routing del distance vector è talvolta chiamato algoritmo di Bellman-Ford e funziona come di seguito. Ogni $\tau$ secondi ogni router invia il proprio vettore ai vicini. Quando un router riceve un vettore da un router vicino, aggiorna la sua tabella in base alle nuove informazioni, in cui per ogni voce:
+\begin{itemize}
+  \item se si ha un percorso migliore di quello già noto, la voce viene sostituita
+  \item se il percorso migliore passa ancora per il router vicino, il costo viene aggiornato
+\end{itemize}
+Questo algoritmo si stabilizza in $\omicron(|\nu|*|L|)$, dove N=nodi e L=collegamenti.\\ 
+Per quanto riguarda l’ algoritmo effettivo si ha che:
+\begin{itemize}
+  \item V = vettore ricevuto dal vicino R
+  \item T = la propria tabella di routing locale
+  \item costo(R) = costo del collegamento verso R
+\end{itemize}
+Per cui l’algoritmo di aggiornamento quando si riceve un vettore V da R è:
+\begin{algorithm}
+\caption{Bellman-ford algorithm}
+\begin{algorithmic}[1]
+\For{each entry $(D, c, N) \in T$}
+    \State $c' \gets V(D) + \text{cost}(R)$
+    \If{$R = N$}
+        \State replace $(D, c, N)$ in $T$ with $(D, c', N)$
+    \ElsIf{$c' < c$}
+        \State replace $(D, c, N)$ in $T$ with $(D, c', R)$
+    \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+I router regolarmente si scambiano messaggi di configurazione, per cui se si rileva un problema si è in grado di farne fronte. Tuttavia esistono dei casi in cui si commettono degli errori.
+\begin{example}
+  Un nodo rileva un guasto al collegamento, nella figura è il link F-G, si ha: F rileva che il collegamento con G si è interrotto, quindi imposta la distanza da G all’infinito e invia l’aggiornamento ad A, che a sua volta imposta la distanza da G all’infinito poiché utilizza F per raggiungere G. Il nodo A poi riceve un aggiornamento periodico da C con un percorso a 2 hop verso G, per cui imposta la distanza da G a 3 e invia l’aggiornamento a F, in quale decide che può raggiungere G in 4 hop attraverso A.
+\end{example}
+Altre circostanze leggermente diverse potrebbero impedire la stabilizzazione della rete, ad esempio se il link A-E va in tilt, nel successivo ciclo di aggiornamenti, A pubblicizza una distanza infinita da E, mentre B e C pubblicizzano una distanza di 2 da E. A seconda dell’esatta tempistica degli eventi, potrebbe accadere quanto segue:
+\begin{itemize}
+  \item il nodo B, dopo aver appreso che E può essere raggiunto in 2 hop da C, conclude che può raggiungere il nodo E in 3 hop e lo pubblicizza ad A;
+  \item il nodo A conclude che può raggiungere E in 4 hop e lo pubblicizza a C; 
+  \item il nodo C conclude che può raggiungere E in 5 hop;
+  \item e così via, fino all’infinito!
+\end{itemize}
+Questo problema nasce dal fatto che i router non sanno in maniera sicura se gli altri router hanno assegnato un certo peso ai link perché hanno un collegamento effettivo o se quel numero deriva da uno scambio di messaggi, per cui essi si fidano e incrementano ogni volta il numero di hop.
+\subsection{Problema del conteggio all'infinito}
+Ci sono dei casi in cui il numero del peso del link può crescere all’infinito quando così non è. Per risolvere il problema si potrebbe utilizzare un numero relativamente piccolo come approssimazione dell’infinito. Ad esempio, il numero massimo di hop per attraversare una certa rete non sarà mai superiore a 16. Questo meccanismo è utilizzato nelle implementazioni reali (RIP). Quando il numero raggiunge il limite, si smette di incrementarlo e lo si considera come $\infty$. Tuttavia è rischioso poiché non funziona se la rete supera il limite e di conseguenza va bene solo per reti limitate, come gli AS.Una tecnica per migliorare il tempo di stabilizzazione dell’instradamento è chiamata \textit{orizzonte diviso}(split horizon). Quando un nodo invia un aggiornamento del routing ai suoi vicini, non invia a questi ultimi le rotte che ha appreso da ciascun vicino. Ad esempio, se B ha la rotta (E, 2, A) nella sua tabella, sa che deve averla appresa da A e quindi ogni volta che B invia un aggiornamento di routing ad A, non include la rotta (E, 2) in tale aggiornamento. Tuttavia, anche questa tecnica ha un problema: lo split horizon non consente a un nodo di sapere se i vicini ricevono i suoi messaggi. \\
+
+In una versione migliorata di split horizon, chiamata \textit{split horizon con veleno inverso} (split horizon with poison reverse), ad esempio B invia effettivamente il percorso inverso ad A, ma inserisce un’informazione negativa nel percorso per garantire che A non utilizzi B per arrivare a E (es.: B invia il percorso (E, $\infty$) ad A). Inoltre, le tecniche di split horizon non risolvono il problema con loop di 3 o più nodi. Per questo motivo, di solito nelle implementazioni reali si usa un “infinito finito”.In questo caso in immagine A si accorge che X non è più raggiungibile, per cui informa B che imposta il valore a $\infty$, in contemporanea però anche C notifica B, per cui B vede che C ha assegnato un peso per X inferiore, dunque aggiorna la entry con la nuova configurazione data da C. Adesso B crede di essere a distanza 8 da X e non più $\infty$, quindi dice ad A che ha un nuovo percorso definito e A si aggiorna di conseguenza. Questi aggiornamenti però sono fasulli…
+\subsection{Routing Information Protocol}
+L’implementazione principale per effettuare un controllo sullo split horizon è il protocollo RIP (Routing Information Protocol), attualmente in versione 2. Esso è implementato come protocollo a livello applicazione e viene eseguito su UDP (porta 520), sebbene possa essere implementato direttamente su IP. Era una soluzione comune per l’instradamento intra-domain e era implementato su sistemi Unix da routed(8). Adotta la tecnica del vettore di distanza con infinito finito: le destinazioni finali sono gli indirizzi di rete, i nodi sono router direttamente connessi alle reti, il next hop è l’indirizzo di un router, o nullo se la destinazione è nella stessa rete, ogni hop si conta +1 e il valore limite per l’infinito è 16 (quindi funziona su reti con diametro ≤15).
+\subsection{Link State Routing}
+Dato che le soluzioni appena viste non sono sempre fattibili o mostrano delle debolezze in alcuni casi, si è preferito adottare un approccio completamente diverso: ogni nodo costruisce una visione completa della rete (nodi e collegamenti). Nodi diversi possono avere viste diverse e ognuno di essi controlla lo stato delle sue connessioni dirette e informa gli altri di ogni cambiamento. Quando un nodo ha una visione completa della rete, può calcolare i percorsi minimi per ogni nodo (es.: utilizzando l’ algoritmo di Dijkstra). \\
+
+Questa strategia mostra già uno svantaggio: serve ampia potenza di calcolo e memoria. Per questo motivo in passato non si era riusciti a utilizzare una tecnica simile, mentre con i router odierni risulta essere già più fattibile (per le sole reti di piccole dimensioni). Per questa ragione, oggigiorno è più probabile utilizzare un link state che non un RIP Per questo approccio ci sono due fasi principali: la prima consiste nel mantenere una visione globale del sistema, ovvero ogni nodo deve acquisire le informazioni, mentre nella seconda si calcolano i percorsi minimi. La strategia che si può utilizzare è quella di informare periodicamente tutti i nodi (non solo i vicini) delle informazioni sui collegamenti direttamente connessi (non l’intera tabella di routing). Per fare ciò si usa un pacchetto di stato del collegamento (LSP, Link State Packet). Esso contiene: id del nodo che l’ha creato, il costo del collegamento con ciascun vicino direttamente connesso, il numero di sequenza (SEQNO) e il tempo di vita (TTL). I pacchetti sono propagati tramite un flusso affidabile (Reliable Flooding): esso memorizza l’LSP più recente da ciascun nodo (tramite timestamp), inoltra l’LSP a tutti i nodi tranne quello che l’ha inviato, genera periodicamente nuovi LSP (incrementando il SEQNO), avvia SEQNO a 0 al riavvio e decrementa il TTL di ogni LSP memorizzato (scartandolo quando TTL=0). \\
+Quindi quando si ha un flooding affidabile si ha una situazione del tipo:
+\begin{itemize}
+  \item(a) LSP arriva al nodo X;
+  \item (b) X invia l’LSP ad A e C;
+  \item (c) A e C inviano l’LSP a B (m
+\end{itemize}
+\subsection{Shortest Path Routing}
+Per calcolare il percorso più breve tra i nodi si usa l’algoritmo di Dijkstra, che ipotizza pesi dei collegamenti
+non negativi. Si segna con $\nu$ l’insieme dei nodi del grafo, mentre con $l(i,j)$ il costo non negativo associato
+all’arco tra i nodi $i,j \in \nu$,e $l(i,j) = \alpha$ se nessun arco collega \textit{i} e \textit{j}. Inoltre, sia $s \in \n u$ il nodo iniziale che esegue l’algoritmo per trovare i percorsi più brevi per tutti gli altri nodi in $\nu$. Vengono utilizzate anche altre due
+variabili: \textit{M} per insieme dei nodi finora incorporati dall’ algoritmo e $C(n)$ per il costo del percorso da \textit{s} a ciascun nodo \textit{n}. L’algoritmo risulta quindi così:
+\begin{algorithm}
+\caption{Djikstra algorithm}
+\begin{algorithmic}[1]
+\State $M \gets \{s\}$
+\For{each $n \in N \setminus \{s\}$}
+    \State $C(n) \gets l(s,n)$
+\EndFor
+\While{$N \neq M$}
+    \State $M \gets M \cup \{w\}$ such that $C(w)$ is minimum for all $w \in (N \setminus M)$
+    \For{each $n \in (N \setminus M)$}
+        \State $C(n) \gets \min\big(C(n),\; C(w) + l(w,n)\big)$
+    \EndFor
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+Con complessità: $\omicron(|l|+|\nu|\log(|\nu|))$ \\
+In pratica, ogni switch/router calcola la propria tabella di routing direttamente dagli LSP raccolti, utilizzando una realizzazione dell’algoritmo di Dijkstra chiamata algoritmo di ricerca in avanti (forward search algorithm). In particolare, ogni switch/router mantiene due elenchi, noti come Tentativo (Tentative) e Confermato (Confirmed). Ciascuna di queste liste contiene un insieme di voci della forma (Destinazione, Costo, Next hop). \\
+L’algoritmo esegue i seguenti passaggi (immagine più esplicativa più in basso):
+\begin{enumerate}
+  \item Inizializza la lista Confirmed con una voce per sé stesso con un costo pari a 0
+  \item Per il nodo appena aggiunto alla lista Confirmed nel passo precedente, chiamanto nodo Next, seleziona il suo LSP
+  \item Per ogni vicino (Neighbor) di Next, calcola il costo (Cost) per raggiungere questo Neighbor come somma del costo da sé stesso a Next e da Next a Neighbor.
+        \begin{itemize}
+          \item a. Se il Neighbor non è attualmente presente né nell’elenco Confirmed né in Tentative, aggiunge (Neighbor, Cost, Next hop) all’elenco Tentative, dove Next hop è la direzione da seguire per raggiungere il Next.
+          \item b. Se il Neighbor è attualmente nell’elenco Tentative e il Cost è inferiore al costo attualmente elencato per il Neighbor, allora sostituire la voce attuale con (Neighbor, Cost, Next hop) dove Next hop è la direzione in cui si va per raggiungere il Next.
+        \end{itemize}
+  \item Se l’elenco dei tentativi è vuoto, ci si ferma. Altrimenti, si sceglie dall’elenco Tentative la voce con il costo più basso e la si sposta nell’elenco Confirmed e si torna al passo 2.
+\end{itemize}
+\subsection{Open Shortest Path First}
+Il protocollo Open Shortest Path First (OSPF) è implementato su unix da gated(8) direttamente su IP (senza UDP), con autenticazione per evitare attacchi di reindirizzamento: un host può reindirizzare il traffico inondando di false informazioni. Adotta l’ approccio Link State, in cui l’ AS è diviso in aree e backbone. Ogni area è collegata alla dorsale o ad altre aree da un router di confine (border router). Questo protocollo e il IS- IS, che funziona in modo simile, sono i più usati nei sistemi intra-dominio al giorno d’oggi. L’amministratore può definire i costi dei collegamenti in vari modi (velocità, costo, carico, latenza, affidabilità, ecc.). L’OSPF consente agli LSP di avere diversi tipi di costi, anche per gli stessi collegamenti, quindi un router può mantenere diverse tabelle di routing (e di conseguenza diverse tabelle di inoltro), una per ogni tipo di servizio previsto e di conseguenza può fare scelte di inoltro diverse per i diversi servizi. La scelta della tabella da applicare viene decisa in base a:
+\begin{itemize}
+  \item TOS/DSCP (raro)
+  \item QoS, priorità (se supportata)
+  \item tag di flusso e priorità in IPv6
+  \item Rilevamento automatico del tipo di flusso (traffic shaping)
+\end{itemize}
+In realtà, i router più costosi e seri applicano una tecnica di machine learning per capire qual è il tipo di flusso
+utilizzato (flow detection) e quindi sapere quale tipo di tabella utilizzare (es.: un SSH lo si può riconoscere non
+solo dalla porta utilizzata, ma anche dalla forma del pacchetto, dalla quantità di dati, ecc.). In questo modo
+sfrutta il traffic shaping per capire cosa sta circolando nel flusso. \\
+I formati dei pacchetti che OSPF utilizza sono i seguenti:
+
+Una cosa interessante e che in RIP non c’è, è che non viene effettuato alcun controllo per evitare pacchetti duplicati o alterati questo è perché OSPF fornisce un meccanismo di autentificazione. Questo è importante perché è possibile simulare l’arrivo di un pacchetto, quando questo però è fasullo (generato da un demon), invece OSPF è in grado di stabilire se un pacchetto è autentico o meno. Infatti, i protocolli visti finora sono particolarmente sensibili a ciò che viene inviato, ad esempio se un router malevolo guarda il contenuto di un pacchetto prima di inviarlo, potrebbe cambiare il contenuto, aggiungere la nuova intestazione, ricalcolare il checksum e inviare il pacchetto e quest ultimo essere perfettamente legittimo (del resto i router cambiano già di loro natura le intestazioni). Un altro esempio potrebbe essere che un router ha delle tabelle di instradamento particolari, che fanno passare obbligatoriamente il flusso di pacchetti per un router/dispositivo malevolo e che quindi può infettare la rete guardando i pacchetti che gli arrivano. Dunque OSPF mette a disposizione un meccanismo di autenticazione, in cui si inserisce una sorta di “firma” nel messaggio inviato. È comunque da ricordare che l’informazione che circola è pubblica e può benissimo essere vista da chiunque sbirci nel traffico della rete. Una delle soluzioni che viene adottata è quella delle chiavi condivise, in cui un router, quando riceve un pacchetto lo valida con la chiave che possiede per vedere se è autentico o meno (in caso negativo lo scarta).
