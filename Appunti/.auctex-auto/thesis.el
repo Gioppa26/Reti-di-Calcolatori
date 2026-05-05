@@ -17,8 +17,8 @@
     "chapters/Chapter1"
     "chapters/Chapter2"
     "chapters/Chapter3"
+    "chapters/Chapter4"
     "chapters/Summary"
-    "chapters/Appendix"
     "report"
     "rep12")
    (TeX-add-symbols

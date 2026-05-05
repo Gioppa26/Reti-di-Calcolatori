@@ -335,6 +335,7 @@ Per quanto riguarda quelli interni, il RIP è un po’ obsoleto in questo period
 Questo è l’algoritmo più semplice e con costi di implementazioni basse. L’ipotesi di partenza è che ogni nodo conosca il costo del collegamento con ciascuno dei suoi vicini direttamente connessi. Ogni nodo costruisce un array monodimensionale (vettore) contenente le “distanze” (costi) da tutti gli altri nodi e distribuisce tale vettore ai suoi vicini immediati.
 \begin{example}
 Si suppone di avere la seguente rete con la seguente tabella con le distanze dei nodi immediati (vicini), in cui ogni riga è il vettore di partenza. Col simbolo $\infty$ si intende che si sa che esiste un nodo ma non si sa quanto disti dal nodo di partenza. Nessun nodo per il momento vede tutta la tabella, ma solo la propria riga. Prendendo in considerazione ad esempio il nodo A, si può costruire la sua tabella di routing iniziale (figura a sinistra). Per i nodi di cui conosce le distanze sa anche qual è il next hop, mentre di quelli non direttamente a esso collegati non può avere attualmente un’informazione di dove mandare i pacchetti (visione parziale e soggettiva della rete). Tramite uno scambio ripetuto di pacchetti relativi alle distanze tra i router, a un certo punto A riesce ad avere una tabella completa per il forwarding (immagine a destra). Lo stesso varrà per gli altri router, per cui ognuno si ritroverà alla fine con una propria tabella completa della rete con cui sono in comunicazione.
+\end{example}
 Di seguito quella completa della rete (visione globale):
 \subsubsection{Algoritmo di Bellman-Ford}
 L’algoritmo di routing del distance vector è talvolta chiamato algoritmo di Bellman-Ford e funziona come di seguito. Ogni $\tau$ secondi ogni router invia il proprio vettore ai vicini. Quando un router riceve un vettore da un router vicino, aggiorna la sua tabella in base alle nuove informazioni, in cui per ogni voce:
@@ -342,7 +343,7 @@ L’algoritmo di routing del distance vector è talvolta chiamato algoritmo di B
   \item se si ha un percorso migliore di quello già noto, la voce viene sostituita
   \item se il percorso migliore passa ancora per il router vicino, il costo viene aggiornato
 \end{itemize}
-Questo algoritmo si stabilizza in $\omicron(|\nu|*|L|)$, dove N=nodi e L=collegamenti.\\ 
+Questo algoritmo si stabilizza in $\Theta(|\nu|*|L|)$, dove N=nodi e L=collegamenti.\\ 
 Per quanto riguarda l’ algoritmo effettivo si ha che:
 \begin{itemize}
   \item V = vettore ricevuto dal vicino R
@@ -394,7 +395,7 @@ Quindi quando si ha un flooding affidabile si ha una situazione del tipo:
 \subsection{Shortest Path Routing}
 Per calcolare il percorso più breve tra i nodi si usa l’algoritmo di Dijkstra, che ipotizza pesi dei collegamenti
 non negativi. Si segna con $\nu$ l’insieme dei nodi del grafo, mentre con $l(i,j)$ il costo non negativo associato
-all’arco tra i nodi $i,j \in \nu$,e $l(i,j) = \alpha$ se nessun arco collega \textit{i} e \textit{j}. Inoltre, sia $s \in \n u$ il nodo iniziale che esegue l’algoritmo per trovare i percorsi più brevi per tutti gli altri nodi in $\nu$. Vengono utilizzate anche altre due
+all’arco tra i nodi $i,j \in \nu$,e $l(i,j) = \alpha$ se nessun arco collega \textit{i} e \textit{j}. Inoltre, sia $s \in \nu$ il nodo iniziale che esegue l’algoritmo per trovare i percorsi più brevi per tutti gli altri nodi in $\nu$. Vengono utilizzate anche altre due
 variabili: \textit{M} per insieme dei nodi finora incorporati dall’ algoritmo e $C(n)$ per il costo del percorso da \textit{s} a ciascun nodo \textit{n}. L’algoritmo risulta quindi così:
 \begin{algorithm}
 \caption{Djikstra algorithm}
@@ -411,7 +412,7 @@ variabili: \textit{M} per insieme dei nodi finora incorporati dall’ algoritmo 
 \EndWhile
 \end{algorithmic}
 \end{algorithm}
-Con complessità: $\omicron(|l|+|\nu|\log(|\nu|))$ \\
+Con complessità: $\Theta(|l|+|\nu|\log(|\nu|))$ \\
 In pratica, ogni switch/router calcola la propria tabella di routing direttamente dagli LSP raccolti, utilizzando una realizzazione dell’algoritmo di Dijkstra chiamata algoritmo di ricerca in avanti (forward search algorithm). In particolare, ogni switch/router mantiene due elenchi, noti come Tentativo (Tentative) e Confermato (Confirmed). Ciascuna di queste liste contiene un insieme di voci della forma (Destinazione, Costo, Next hop). \\
 L’algoritmo esegue i seguenti passaggi (immagine più esplicativa più in basso):
 \begin{enumerate}
@@ -423,7 +424,7 @@ L’algoritmo esegue i seguenti passaggi (immagine più esplicativa più in bass
           \item b. Se il Neighbor è attualmente nell’elenco Tentative e il Cost è inferiore al costo attualmente elencato per il Neighbor, allora sostituire la voce attuale con (Neighbor, Cost, Next hop) dove Next hop è la direzione in cui si va per raggiungere il Next.
         \end{itemize}
   \item Se l’elenco dei tentativi è vuoto, ci si ferma. Altrimenti, si sceglie dall’elenco Tentative la voce con il costo più basso e la si sposta nell’elenco Confirmed e si torna al passo 2.
-\end{itemize}
+\end{enumerate}
 \subsection{Open Shortest Path First}
 Il protocollo Open Shortest Path First (OSPF) è implementato su unix da gated(8) direttamente su IP (senza UDP), con autenticazione per evitare attacchi di reindirizzamento: un host può reindirizzare il traffico inondando di false informazioni. Adotta l’ approccio Link State, in cui l’ AS è diviso in aree e backbone. Ogni area è collegata alla dorsale o ad altre aree da un router di confine (border router). Questo protocollo e il IS- IS, che funziona in modo simile, sono i più usati nei sistemi intra-dominio al giorno d’oggi. L’amministratore può definire i costi dei collegamenti in vari modi (velocità, costo, carico, latenza, affidabilità, ecc.). L’OSPF consente agli LSP di avere diversi tipi di costi, anche per gli stessi collegamenti, quindi un router può mantenere diverse tabelle di routing (e di conseguenza diverse tabelle di inoltro), una per ogni tipo di servizio previsto e di conseguenza può fare scelte di inoltro diverse per i diversi servizi. La scelta della tabella da applicare viene decisa in base a:
 \begin{itemize}
