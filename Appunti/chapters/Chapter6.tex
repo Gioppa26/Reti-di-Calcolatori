@@ -1,1 +1,114 @@
 \chapter{Chapter 6}\label{ch:Chapter6}
+\section{Controllo della congestion e allocazione delle risorse}
+Il problema che si deve affrontare è:come allocare in modo efficace ed equo le risorse tra un insime di utenti in competizione.Con risorse nelle reti si intendono:larghezza di banda dei collegamenti,dei buffer nei router e negli switch.I pacchetti si contendono presso un router l'uso di un collegamente e ogni pacchetto viene messo in coda in attesa del suo turno di trasmissione sul collegamento.Quando troppi pacchetti si contendono lo stesso collegamento,la coda si riempie e i pacchetti in più vengono eliminati,col risultato che la rete è congestionata.La rete deve quindi prevedere un meccanismo di controllo/evitamento della congestione.\\
+Il controllo della congestione e l'allocazione delle risorse sono due facce della stessa medaglia.Se la rete assumesse un ruolo attivo, nell'allocazione delle risorse,la congestione potrebbe essere evitata e non ne sarebbe necessario il controllo.Il problema è che allocare in anticipo le risorse con precisione è difficile,dato che le risorse sono distribuite in tutta la rete e non è facilemente definibile a priori.D'altra parte,si può sempre lasciare che le sorgenti iniviino tutti i dati che voglio e poi recuperare la congestione quando si verifica.Questo approccio è più semplice,ma potrebbe causare dei danni dato che molti pacchetti vengono scartati dalla rete prima che la congestione possa essere controllata.Un terzo approccio consiste nel lasciare che le sorgenti inviino tutti i dati che vogliono,fermandole prima che si verifichi una congestione(\textit{congestion avoidance}).L'approccio risulta molto difficile dato che implicherebbe il riconoscimento della congestione prima del verificarsi,quindi viene implementato di meno.\\
+Il controllo della congestione e l'allocazione delle risorse coinvolgono sia gli host sia gli elementi di rete,come per esempio i router.Per gli elementi di rete si possono utilizzare varie discipline di accomodamento per controllare l'ordine in cui i pacchetti vengono trasmessi quali invece vengono scartati.A livello di host, il meccanismo di controllo della congestione stabilisce la velocità con cui le sorgenti possono inviare i pacchetti.
+\section{Problemi di allocazione delle risorse}
+\subsubsection{Modello di rete a commutazione di pacchetto:}
+Consideriamo l'allocazionde delle risorse in una rete a commutazione di pacchetto costituita da più collegmenti e switch(o router).In un ambiente di questo tipo, una determinata sorgente può avere una capacità più che sufficiente,sul collegamento in uscita,per inviare un pacchetto,ma da qualche parte nel mezzo della rete i suoi pacchetti incontrano un collegamento utilizzato da molte sorgenti di traffico diverse,risultato:bottleneck.
+\subsubsection{MOdello di rete con flussi senza connessione:}
+Solitamente si assume che la rete sia essenzialmente priva di connessioni e con qualsiasi servizio orientato alla connessione,che viene implementato a livello trasporto.Qualifichiamo il termine "senza connessioni" perchè la classificazione delle reti come senza/orientate alle connessioni è un po'troppo restrittiva.In particolare,l'ipotesi che tutti i datagrami siano completamente indipendenti in una rete senza connessione è troppo forte.I datagrammi sono certamente scambiati in modo indipendente,ma è solito che un flusso di datagrammi tra una particolare coppia di host, passa attraverso un particolare insieme di router.\\
+Uno dei vantaggi dell'astrazione del flusso è che i glussi possono essere definiti a diverse granularità:un flusso può essere \textit{host-to-host}(ha gli stessi indirizzi di origine e destinazione) o \textit{process-to-process}(ha le stess coppie host/porta di origine e host/porta destinazione).In quest'ultimo caso, un flusso è essenzialmente uguale a un canale.Il motivo per cui si è introdotto un nuovo termine è che un flusso è visibile ai router all'interno delle rete mentre un canale è un'astrazione end-to-end.Poichè attraverso un router passano più pacchetto correlati,a volte ha senso mantenere alcune informazioni di stato per ogni flusso(es.:la velocità,la dimensione dei pacchetti,il bitrate,ecc.).Queste informazioni possono essere utilizzate per prendere decisioni sull'allocazione delle risorse per i pacchetti che appartengono al flusso.Questo stato viene chiamato \textbf{soft state}.La differenza principale tra lo stato soft e lo stato hard è che il primo non deve essere sempre creato e rimosso esplicitamente tramite segnalazione.Spesso viene dedotto automaticamente dai router (tecniche recenti adottando il deep learning sui dati di traffico).\\
+Lo stato soft rappresenta una via di mezzo tra un rete puramente priva di connessioni,che non mantiene alcuno stato sui router, e una rete puramente orientata alle connessioni,che mantiene uno stato rigido sui router.Il corretto funzionamento delle rete non dipende dalla presenza del soft state(ogni pacchetto viene comunque instradato correttamente senza tene conto di questo stato),ma  quando un pacchetto appartiene a un glusso per il qule il router sta mantenendo il soft state, allora il router è in grado di gestire meglio il pacchetto.\\
+Esistono quindi due tassonomie basate sui router:
+\begin{itemize}
+  \item \underline{Router-centrico}:ogni router si assume la responsabilità di decidere quando i pacchetti deveno essere inoltrati, selezionare quali pacchetti devono essere abbandonati e informare gli host che generano il traffico sul numero di pacchetti che possono inviare.
+  \item \underline{Host-centrico}:gli host finale osservano le condizioni della rete e regolano il loro comportamento di conseguenza.
+\end{itemize}
+Si noti che questi due approcci non si escludono a vicenda.\\
+Sempre parlando di tassonomie non possiamo non citare quelle basate su prenotazione e feedback:
+\begin{itemize}
+  \item In un sistema basato sulla prenotazione, un'entità chiede alla rete di allocare una certa quantità di capacità per un flusso.Ogni router alloca quindi risorse sufficienti(buffer e/o percentuale della larghezza di banda del collegamento) per soddisfare questa richiesta.Se la richiesta non può essere soddisfatta,perchè ciò comporterebbe un sovraccarico delle sue risorse,il router rifiuta la prenotazione.
+  \item In un approccio basato sul feedback,gli host finale iniziano a inviare dati senza aver prima prenotato alcuna capacità e poi regolano la loro velocità di invio in base al feedback che ricevono.Questo feedback può essere esplicito(es.:un router congestionato invia all'host un messaggio di rallentamento) o implicito (es.:l'host finale regola la propria velocità di invio in base al comportamento osservabile dall'esterno della rete,come le perdite di pacchetti).
+\end{itemize}
+Tra i criteri di valutazione c'è l'efficacia dell'allocazione delle risorse.L'efficacia può essere misurata considerando le due principali metriche ddel networking:throughput e ritardo.Si vuole il massimo throughput e il minimo ritardo possibile(questi obiettivi sono in contrasto tra loro).Si può aumentare il throughpupt facendo entrare nella rete il maggior numero possibile di pacchetti, in modo da portare l'utilizzo di tutti i collegamenti al 100\%,ma così facendo aumenterebbe anche la lunghezza delle code in ogni router quindi si creano ritardi maggiori.Al contrario,i ritardi possono essere ridotti al minimo mantenendo le code il più possibile vuote ma ciò comporta un minore utilizzo dei collegamenti.
+\subsection{Criterio di valutazione con allocazione efficace delle risorse}
+Un'analisi dettagliata richiederebbe strumenti e risultati di un'area della probabilità e della statistica chiamata teoria delle code.
+\begin{example}
+  Consideriamo un flusso completamente casuale di richieste a un erver senza memoria(questo tipo di coda è detto M/M/1).\\
+  I parametri utilizzati sono:
+  \begin{itemize}
+    \item Velocità media di arrivo nella coda: \lambda [$\frac{richiesta}{secondo}$]
+    \item Tempo medio di servizio al server: \textit{S} [$\frac{secondo}{richiesta}$]
+  \end{itemize}
+  I risultati che si ottengono sono:
+  \begin{itemize}
+    \item Tempo medio di permanenza che un cliente impiega per superare il sistema di code: $R = \frac{S}{(1-\lambda S)}$
+    \item Utilizzo del server: $\rho = \lambda S$
+    \item Lunghezza media della coda del sistema: $Q = \lambda R$
+    \item Tempo medio di attesa che un cliente può aspettarsi di trascorrere prima di ottenere il servizio: $W = R - S = \frac{S\rho}{(1-\rho)}$
+  \end{itemize}
+\end{example}
+
+Per descrivere questa relazione,alcuni progettisti hanno proposto di utilizzare il rapporto tra throughput e ritardo come parametro per valutare l'efficacia di uno schema di allocazione delle risorse.Questo rapporto è talvolta indicato come potenza della rete:
+\begin{equation}
+  Potenza = \frac{velocità di trasmissione}{ritardo}
+\end{equation}
+Se l'obiettivo è massimizzare il throughput e minimizzare il ritardo,l'obiettivo è quindi massimizzare la potenza.Nel caso M/M/1 si tratta di:$Potenza = \frac{\lambda}{S-\lambda ^{2}}$.
+\subsection{Criteri di valutazione con allocazione equa delle risorse}
+Si consideri un glusso a quattro hop F1 e tre flussi a due hop F2,F3,F4.Sia B la banda complessiva di ciascun router.Complessivamente,le risorse da assegnare sono 4B.Se ogni router assegna parti uguali della sua banda a ogni flusso in arrivo:
+\begin{itemize}
+  \item F1 ottiene $\frac{B}{2} + \frac{B}{3} + \frac{B}{3} + \frac{B}{2} = \frac{5B}{3} $
+  \item F2 riceve $\frac{B}{2} + \frac{B}{3} = \frac{5B}{6} $
+  \item F3 riceve $\frac{B}{3} + \frac{B}{3} = \frac{2B}{3} $
+  \item F4 ottiene $\frac{B}{3} + \frac{B}{2} = \frac{5B}{6} $
+\end{itemize}
+Quindi F1 ottiene molto più degli altri.\\
+In assenza di inormazioni esplicite che indichino il contrario,quando più flussi condividono un particolare collegamento,sivorrebbe che ogni flusso ricevesse una quota uguale della larghezza di banda.Questa definizione presuppone che una quota equa di larghezza di banda significhi una quota eguale di larghezza di banda.Il fatto è che anche in assenza di prenotazione una quota uguale potrebbe non corrispondere a una quota equa,quindi è necessario considerare la lunghezza dei percorsi confrontati.\\
+Assumendo che equo implica uguale e che tutti i percorsi sono di uguale lunghezza,l'indice di equità di Jain può essere utilizzato per quantificare l'equità di un meccanismo di controllo della congestione.Dato un insieme di throughput di flusso $x_1,x_2,\ldots,x_n$(misurati ad esempio in bps),l'indice di equità \textit{f} di Jain è definito come:
+\begin{equation}
+  f(x_1, x_2, \ldots, x_n) = \frac{\left(\sum_{i=1}^{n} x_i\right)^2}{n \cdot \sum_{i=1}^{n} x_i^2}
+\end{equation}
+Può essere applicato anche a altre risorse(ec.:memoria,energia,ecc.) e anche in altri settori.L'indice di equità risulta essere sempre un numero compreso tra $\frac{1}{n}$ e 1 (più è grande meglio è).Il caso $\frac{1}{n}$ si ottiene quando tutti gli $x_i$ tranne uno sono 0,cioè quando tutte le risorse vanno a un unico flusso,mentre il caso a 1 quando $x_i=x_j$ per tutti gli i,j(massima equità).\\
+Nell'esempio dei quattro flussi sopra:$f(\frac{5B}{3},\frac{5B}{6},\frac{2B}{3},\frac{5B}{6}) = 0,867$,il che significa che c'è una leggera equità,ma uno dei flussi tende a prelevare un po' sugli altri.Nella realtà,esistono anche altre politiche di allocazione delle risorse.
+\subsection{Disciplina di accodamento FIFO con tail drop}
+Dato che lo spazio del buffer di ogni router è finito,se un pacchetto ariva e la coda è piena,il router lo scarta(rispetta FIFO).Il tutto avviene senza tener conto del flusso a cui il pacchetto appartiene o della sua importanza.QUesta procedura viene talvolta chiamata \textit{tail drop} poiché i pacchetti che arrivano alla fine della coda vengono scartati.Si noti che tail drop e FIFO sono due concetti separati:la FIFO è una disciplina di programmazione che determina l'ordine di trasmissione dei pacchetti,il tail drop è una politica di drop che determina quali pacchetti vengono scartati.\\
+Una semplice variante dell'accomodamento FIFO di base è l'accodamento prioritario (\textit{priority queuing}).L'idea è quella di co contrassegnare ogni pacchetto con una priorità.Il contrassegno può essere riportato,ad esempio,nell'header IP(TOS/DSCP) o determinato in altri modi.I router implementano quindi code FIFO multiple, una per ogni class di priorità.Il router trasmette sempre i pacchetti dalla coda di priorità più alta,se questa non è vuota,prima di passare alla coda di priorità successiva.All'interno di ogni priorità,i pacchetti sono ancora gestiti in modo FIFO.
+\subsection{Disciplina di accodamento con accodamento equo}
+Il problema principale dell'accodamento FIFO è che non discimina tra le diverse sorgenti di trafficoe non separa i pacchetti in base al flusso a cui appartengono.L'accodamento equo(\textit{fair queuing,FQ}) è un algoritmo proposto per risolvere questo problema.L'idea di FQ è di mantenere una coda separata per ogni flusso attualmente gestito dal router.Il router server poi queste code in una sorta di round robin.La complicaione principale dell'accodamento equo è che i pacchetti elaborati da un router non sono necessariamente della stessa lunghezza.Per allocare veramente la larghezza di banda del collegamento in uscita equamente, è necessario prendere in considerazione la lunghezza dei pacchetti.L'ideale è ottenere un round-robin bit per bit:il touter trasmette un bit dal flusso 1 poi uno dal flusso 2 e così via.Chiaramente, non è possibile interlacciare i bit dei diversi pacchetti dato che ogniuno deve essere trasmesso per intero.Il meccanismo FQ approssima questo comportamento:prima determina il momento in cui un dato pacchetto finirebbe di essere trasmetto,se venisse inviato utilizzando il round-robin, e poi utilizzando questo tempo di completamente ordina i pacchetti per per la trasmissione.\\
+\textbf{Vedere spiegazione algoritmo}
+\section{Controllo della congestion di TCP}
+Il controllo della congestion è stato introdotto in Internet alla finel degli anni '80 da VAn Jacobson, circa 8 anni dopo che lo stack TCP/IP diventasse operativo.Prima di allora Internet soffriva di un collasso della congestione.Gli host inviavano i loro pacchetti in Internet alla velocità massima consentita dall'AdvertisedWindow ma i router intermedi avevano una capienza più limitata di essa.Si verificava quindi una congestione in qualche router(che causava il drop dei pacchetti), dato che gli host andavano in timeout per ritrasmettevano i loro pacchetti causando cosi una congestione ancora maggiore.\\
+Visto il problema,sono stati introdotti degli algoritmi di controllo della congestione su tutte le architetture TCP/IP.L'idea era quella che ogni sorgente deve determinare quanta capacità è disponibile nella rete in modo da sapare quanti pacchetti può far transitare con sicurezza.Tra i vari algoritmi c'è l'algorimo di Nagle:una determinata sorgente con N pacchetti in transito utilizza un ACK per segnalare che uno dei suoi pacchetti ha lasciato la rete, quindi è sicuro inserire un nuovo pacchetto senza aumentare il livello di congestione.Utilizzando gli ACK per ritmare la trasmissione dei pacchetti rende TCP \textit{self-cloking}.\\
+\subsection{Congestion Window}
+Il protocollo TCP mantiene una nuova variabile di stato per ogni connessione,chiamata \textit{CongestionWindow o cwnd},che viene utilizzata dalla sorgete per limitare la quantità di dati in transito in un determinato momento (è un singono numero che dice quanti dati sono ancora inviabili sulla rete,senza mandare in congestion i router intermedi).La CongestionWindow è la controparte del congestion control della AdvertizedWindow.Il TCP è stato modificato in modo tale che il numero massimo di byte di dati non riconosciuti consentito sia ora il minimo della CongestionWindow e della AdvertizedWindow.A questo punto la finestra effettiva viene modificata in questo modo:
+\begin{itemize}
+  \item MaxWindow = MIN(CongestionWindow,AdvertizedWindow)
+  \item EffectiveWindow = MaxWindow - (LastByteSent - LastByteAcked)
+\end{itemize}
+Così facendo,una sorgente TCP non può inviare più velocemente di quanto possa fare il componente più lento,la rete o l'host di destinazione.
+\begin{Question}
+  Come fa il TCP a sapere il valore appropriato per la CongestionWindow?
+\end{Question}
+La sorgente TCP deve dedurre il livello di congestione da se e impostare di conseguenza la CongestionWindow.In particolare, un mittente testa la capacità della rete provando a inviare su di essa il numero di pacchetti in base alla AdvertizedWindow e poi resta in ascolto.Cosi facendo cerca di capire e dedurre quanto è grande la CongestionWindow in base alle congestioni che si veficano.Il tutto comporta una diminuzione della CongestionWindow,se il livello di congestion aumenta,al contrario invece ad un aumento se il livello di congestione diminuisce.Questo meccasimo è chiamato \textit{additivi increase / multiplicativi decreati o AIMD}.
+\subsubsection{Algotimo AIMD:}
+Segue la seguente formula matematica:
+\begin{itemize}
+  \item $w(t)$:CongestionWindow nella fascia temporale t
+  \item $a > 0$:parametro di aumento additivo
+  \item $0<b<1$:fattore di diminuzione moltiplicativo
+\end{itemize}
+Il mittente invia uno slot di pacchetti e aspetta un riscontro dalla rete.Se vede che non si verifica nulla allora prova a inviare qualche pacchetto in più,altrimenti,se si era verifica una congestione,riduce i pacchetti.L'operazione appena descritta si riassume con la formula:
+\begin{equation}
+\[
+w(t+1) =
+\begin{cases}
+    w(t) + a  & \text{se la congestion non è stata rilevata}\\
+    v(t) * b  & \text{se la congestion è stata rilevata}
+\end{cases}
+\]
+\end{equation}
+In TCP si ha che $a = 1$ MMS e $b=0.5$.Sebbene la CongestionWindow sia definita in termini di byte,questi valori sono da intendersi come numero di pacchetti interi.La CW non può scendere al di sotto della dimensione di un singolo pacchetto,cioè la dimensione massima del segmento(MSS).\\
+A questo punto resta da chiarire come fa la sorgente a determinare che la rete è congestionata e quindi bisogna diminuire la CongestionWindow.La soluzione sta sul motivo principale per cui i pacchett non vengono consegnati: il pacchetto è stato abbandonato a causa della congestion di un router intermedio.Siccome è raro che un pacchetto venga abbandonato a causa di un errore duranet la trasmissione(eccetto per le connessioni wireless),l'unico motivo è solamente quello di uno scarto volontario.Pertanto,TCP interpreta i timeout come un segnale di congestion e riduce la velocità di trasmissione.In particolare, ogni volta che si verifica un timeout,la sorgente imposta la CongestionWindow alla metà del suo valore precedente. Per quanto riguarda l'aumento additivo,ogni volta che la sorgente invia con successo un pacchetto di CongestionWindow aggiunge l'equivalente di un pacchetto alla CongestionWindow.\\
+In realtà,TCP non aspetta un'intera finestra di ACK per agigungere un pacchetto alla CongestionWindow ma incrementa CongestionWindow di una frazione di MSS ogni volta che viene ricevuto un ACK.Supponendo che l'ACK ricevuto confermi la ricezionde di (nuovi) \textit{k} byte, la frazione risulterebbe $\frac{k}{CongestionWindow}$.In particolare,quando si riceve un ACK per i \textit{k} byte,la CongestionWindow viene incrementata in questo modo:
+\begin{itemize}
+  \item $Incremento = MSS * \frac{k}{CongestionWindow}$
+  \item $CongestionWindow = CongestionWindow + Incremento$
+\end{itemize}
+In questo modo se tutti questi dati vengono ACKait l'incremento complessivo è esattamente di 1 MSS.Se invece vengono inviati mendo dati,l'incremento complessivo è proporzionalmente inferiore a 1 MSS.Questo meccanismo prende il nome di \textit{modello a dente di sega} della CongestionWindow.
+\subsubsection{Slow start}
+Il meccanismo di aumento additivo,sopra descritto, è l'approccio giusto da utilizzare quando la sorgente sta operando vicino alla capacità disponibile della rete,ma richiede troppo tempo per aumentare una connessione quando questa parte da zero.Il TCP prevede quindi un secondo meccanismo,chiamato \textit{slow start},che viene utilizzato per ingrandisce rapidamente la CongestionWindow dopo una parteza a freddo.Lo slow start aumenta la CongestionWindow in modo esponenziale anzichè lineare,che è comunque più lento rispetto al lancio di una quantità di dati da una finestra pubblicizzata in una sola volta.\\
+In particolare,la sorgente inizia impostando la CongestionWindow a un unico pacchetto.Quando arriva l'ACK per il pacchetto,TCP aggiunge 1 a CongestionWindow e invia due pacchetti.Dopo aver ricevuto i due ACK corrispondenti,TCP incrementa CongestionWindow di 2 per ogni ACK e poi invia quattro pacchetti e avanti così.Il risultato finale è che TCP raddoppia effettivamente il numero di pacchetti in trasito ogni RTT.Quando poi si raggiunge il limite della finestra si applica la stessa regola del dimezzo(diminuzione moltiplicativa).\\
+L'altro caso in cui viene utilizzato Slow Start si verifica quando la connessione si interrompe in attesa di un timeout.Questo ricalca l'algortimo della SlidingWindow di TCP: quando un pacchetto viene perso, la sorgente raggiunge un punto in cui ha inviato tutti i dati consentiti dalla finestra pubblicizzata e quindi si blocca in attesa di un ACK che non arriverà.Alla fine si verifica un timeout,ma dato che non ci sono pacchetti in transito,la sorgente non riceverà alcun ACK per cronometrare la trasmissione dei nuovi pacchetti.Dopo il timeout, la sorgente reinvia il pacchetto perso e riceve un singono ACK cumulativo che riapre l'intera AdvertisedWindow.Ora, si può scaricare sulla rete un’intera finestra di dati tutta in una volta sarebbe troppo aggressivo per la rete. Invece, la sorgente utilizza l’avvio lento per riavviare il flusso di dati.\\
+Il timeout,anche se la sorgente utilizza di nuovo l'avvio lento, ora conosce più informazioni rispetto all'inizio della connessione.La sorgente ha un valore attuale di CongestionWindow: il valore precedente all'ultima perdita di pacchetti,diviso per 2 come risultato della perdita.Questo valore può essere considerato come la CongestionWindow target.L'avvio lento viene utilizzato per aumentare rapidamente la velocità di invio fino a questo valore e poi viene utilizzato un aumento additivo oltre questo punto.\\
+Il TCP introduce una variabile temporante per memorizzare la finestra target,tipicamente chiamata \textit{CongestionThreshold o ssthreshold},che viene impostata uguale al valore di CongestionWindow risultante dalla diminuzione moltiplicativa.La variabile CongestionWindow viene quindi reimpostata a un pacchetto e viene incrementata per ogni pacchetto ricevuto finchè non raggiunge il CongestionThreshold,arrivata a quel punto inizierà ad incrementare per ogni pacchetto RTT.

@@ -19,6 +19,7 @@
     "chapters/Chapter3"
     "chapters/Chapter4"
     "chapters/Chapter5"
+    "chapters/Chapter6"
     "chapters/Summary"
     "report"
     "rep12")
